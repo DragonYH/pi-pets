@@ -1,4 +1,4 @@
-import type { PetBones, RarityTier, Stats } from './types.ts';
+import type { PetBones, RarityTier, SpeciesDef, Stats } from './types.ts';
 import { STAT_KEYS } from './types.ts';
 import { createPrng } from './prng.ts';
 import { SPECIES } from './species.ts';
@@ -33,7 +33,7 @@ export function hatch(seed: number, speciesOverride?: string): PetBones {
     } else {
       // Imported Codex pet — create a default species definition
       speciesDef = {
-        id: speciesOverride,
+        id: speciesOverride as SpeciesId,
         name: speciesOverride,
         nameEn: speciesOverride,
         emoji: '🐾',

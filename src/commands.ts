@@ -1,68 +1,14 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { PetEngine } from './pet_instance.ts';
-import { buildWidget } from './ui/widget.ts';
 import { buildFooterStatus } from './ui/footer.ts';
 import { getRandomBubble } from './ui/bubbles.ts';
-import { levelUpOverlay, evolutionOverlay } from './ui/overlay.ts';
 import { hashString } from './prng.ts';
 import { xpFromPetCommand, xpFromFeedCommand } from './xp.ts';
 import { importCodexPet } from './codex/importer.ts';
 import { loadCodexPet, setAnimationOverride } from './codex/art-provider.ts';
 
-const WIDGET_KEY = 'pi-pets';
-
 export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
-  let currentBubble = getRandomBubble('happy');
   let widgetVisible = true;
-  let animationFrame = 0;
-  let renderTimer: ReturnType<typeof setInterval> | null = null;
-
-  // ===== Animation / render loop =====
-
-  function startRenderLoop(ctx?: { ui: { setWidget: (k: string, lines: string[] | undefined) => void; setStatus: (k: string, text: string | undefined) => void } }) {
-    stopRenderLoop();
-    renderTimer = setInterval(() => {
-      animationFrame = (animationFrame + 1) % 4;
-
-      // Update footer
-      const footerText = buildFooterStatus(engine);
-      if (ctx) {
-        ctx.ui.setStatus('pet', footerText);
-      }
-
-      // Update widget if visible
-      if (widgetVisible && ctx) {
-        const widgetLines = buildWidget(engine, animationFrame, currentBubble);
-        ctx.ui.setWidget(WIDGET_KEY, widgetLines);
-      }
-    }, 500);
-  }
-
-  function stopRenderLoop() {
-    if (renderTimer !== null) {
-      clearInterval(renderTimer);
-      renderTimer = null;
-    }
-  }
-
-  // ===== Helper to get ctx from command handler =====
-
-  function updateWidget(ctx: { ui: { setWidget: (k: string, lines: string[] | undefined) => void } }) {
-    const lines = buildWidget(engine, animationFrame, currentBubble);
-    ctx.ui.setWidget(WIDGET_KEY, lines);
-  }
-
-  function showOverlay(ctx: { ui: { setWidget: (k: string, lines: string[] | undefined) => void } }, lines: string[]) {
-    ctx.ui.setWidget(WIDGET_KEY, lines);
-    // Auto-hide overlay after 2s
-    setTimeout(() => {
-      if (widgetVisible) {
-        updateWidget(ctx);
-      } else {
-        ctx.ui.setWidget(WIDGET_KEY, undefined);
-      }
-    }, 2000);
-  }
 
   // ===== Commands =====
 
@@ -92,27 +38,24 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
             // Release current pet if any
             if (engine.hasPet) {
               await engine.release();
-              stopRenderLoop();
-              ctx.ui.setWidget(WIDGET_KEY, undefined);
               ctx.ui.setStatus('pet', undefined);
             }
 
             // Hatch the imported pet
             const seed = hashString(`codex-${result.speciesId}-${Date.now()}`);
-            const hatchResult = await engine.hatch(seed, result.speciesId);
+            await engine.hatch(seed, result.speciesId);
 
             // Preload Codex frames into memory
             await loadCodexPet(result.speciesId);
 
-            currentBubble = getRandomBubble('excited');
-            startRenderLoop(ctx);
-            updateWidget(ctx);
-            ctx.ui.notify('🐣 导入成功！欢迎 ' + hatchResult.name, 'info');
+            engine.setBubble(getRandomBubble('excited'));
+            ctx.ui.setStatus('pet', buildFooterStatus(engine));
+            ctx.ui.notify('🐣 导入成功！欢迎 ' + engine.petName, 'info');
           } catch (err) {
             ctx.ui.notify('导入失败: ' + (err as Error).message, 'error');
           }
           return;
-          }
+        }
 
         // ---- hatch ----
         case 'hatch': {
@@ -127,23 +70,20 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
             }
           }
 
-          // Generate seed from pi config path or fallback to timestamp
           const seedArg = parts[1];
           let seed: number;
           if (seedArg) {
             seed = hashString(seedArg);
           } else {
-            // Try to get seed from pi config; use hash of hostname+user as fallback
             const { hostname } = await import('node:os');
             seed = hashString(`pi-pets-${hostname()}-${Date.now()}`);
           }
 
-          const result = await engine.hatch(seed);
-          ctx.ui.notify(`🐣 孵化成功！欢迎 "${result.name}" (${result.stage})`, 'info');
+          await engine.hatch(seed);
+          ctx.ui.notify(`🐣 孵化成功！欢迎 "${engine.petName}"`, 'info');
 
-          currentBubble = getRandomBubble('excited');
-          startRenderLoop(ctx);
-          updateWidget(ctx);
+          engine.setBubble(getRandomBubble('excited'));
+          ctx.ui.setStatus('pet', buildFooterStatus(engine));
           break;
         }
 
@@ -154,7 +94,6 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
             return;
           }
           widgetVisible = true;
-          updateWidget(ctx);
           ctx.ui.notify('宠物面板已显示', 'info');
           break;
         }
@@ -167,9 +106,9 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
           }
           engine.doPet();
           engine.addXp(xpFromPetCommand());
-          currentBubble = '嗯～好舒服～';
+          engine.setBubble('嗯～好舒服～');
           setAnimationOverride('play', 2000);
-          updateWidget(ctx);
+          ctx.ui.setStatus('pet', buildFooterStatus(engine));
           ctx.ui.notify('你摸了摸宠物，它很开心！', 'info');
           break;
         }
@@ -182,15 +121,15 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
           }
           engine.doFeed();
           engine.addXp(xpFromFeedCommand());
-          currentBubble = '好吃！谢谢～';
-          updateWidget(ctx);
+          engine.setBubble('好吃！谢谢～');
+          ctx.ui.setStatus('pet', buildFooterStatus(engine));
           ctx.ui.notify('宠物吃饱了！', 'info');
           break;
         }
 
         // ---- name ----
         case 'name': {
-          if (!engine.hasPet) {
+          if (!engine.hasPet || !engine.state) {
             ctx.ui.notify('还没有宠物！', 'warning');
             return;
           }
@@ -199,15 +138,15 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
             ctx.ui.notify('请提供新名称：/pets name <新名字>', 'warning');
             return;
           }
-          // Validate: filter control chars, trim, length check
           const sanitized = newName.replace(/[\x00-\x1F\x7F]/g, '').trim();
           if (!sanitized || sanitized.length > 32) {
             ctx.ui.notify('名称长度需在 1-32 字符之间，且不能包含控制字符', 'warning');
             return;
           }
           engine.state!.name = sanitized;
+          engine.setBubble(`现在我叫 ${sanitized}！`);
           await engine.save();
-          updateWidget(ctx);
+          ctx.ui.setStatus('pet', buildFooterStatus(engine));
           ctx.ui.notify(`宠物已重命名为 "${sanitized}"`, 'info');
           break;
         }
@@ -216,10 +155,8 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
         case 'toggle': {
           widgetVisible = !widgetVisible;
           if (widgetVisible) {
-            updateWidget(ctx);
             ctx.ui.notify('宠物面板已显示', 'info');
           } else {
-            ctx.ui.setWidget(WIDGET_KEY, undefined);
             ctx.ui.notify('宠物面板已隐藏', 'info');
           }
           break;
@@ -241,8 +178,6 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
           }
           const name = engine.petName;
           await engine.release();
-          stopRenderLoop();
-          ctx.ui.setWidget(WIDGET_KEY, undefined);
           ctx.ui.setStatus('pet', undefined);
           ctx.ui.notify(`"${name}" 已放生。一路走好...`, 'info');
           break;

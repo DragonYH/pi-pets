@@ -20,6 +20,10 @@ declare module '@earendil-works/pi-coding-agent' {
       setStatus(key: string, text: string | undefined): void;
       notify(message: string, level: 'info' | 'warning' | 'error'): void;
       confirm(title: string, message: string): Promise<boolean>;
+      custom<T>(
+        factory: (tui: any, theme: any, keybindings: any, done: (result?: T) => void) => { render(width: number): string[]; invalidate(): void; dispose?(): void; handleInput?(data: string): void },
+        options?: { overlay?: boolean; overlayOptions?: Record<string, unknown> },
+      ): Promise<T>;
     };
     cwd: string;
   }
