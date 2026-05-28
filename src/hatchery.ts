@@ -1,4 +1,4 @@
-import type { PetBones, RarityTier, SpeciesDef, Stats } from './types.ts';
+import type { PetBones, RarityTier, SpeciesDef, SpeciesId, Stats } from './types.ts';
 import { STAT_KEYS } from './types.ts';
 import { createPrng } from './prng.ts';
 import { SPECIES } from './species.ts';

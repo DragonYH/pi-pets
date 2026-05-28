@@ -33,7 +33,8 @@ export function buildWidget(
   const art = getCodexFrame(s.bones.species, codexState, animationFrame);
   if (art.length > 0) {
     for (const row of art) {
-      const centered = visualPadStart(row, Math.floor((I + visualLen(row)) / 2));
+      const clamped = visualClamp(row, I);
+      const centered = visualPadStart(clamped, Math.floor((I + visualLen(clamped)) / 2));
       lines.push(`│${visualPadEnd(centered, I)}│`);
     }
   } else {
@@ -51,7 +52,8 @@ export function buildWidget(
   const shinyMark = s.bones.isShiny ? '✨ ' : '';
   const speciesLabel = `${shinyMark}${s.bones.species.toUpperCase()}`;
   const nameDisplay = visualLen(s.name) > 14 ? visualClamp(s.name, 13) + '\u2026' : s.name;
-  lines.push(`│${visualPadEnd(speciesLabel, 10)}${visualPadStart(nameDisplay, I - 10)}│`);
+  const speciesW = Math.min(10, I);
+  lines.push(`│${visualPadEnd(speciesLabel, speciesW)}${visualPadStart(nameDisplay, I - speciesW)}│`);
 
   // Info line 2: Lv, stage, rarity, emotion, XP
   const stageLabel = stageDisplayName(s.stage);
@@ -62,20 +64,25 @@ export function buildWidget(
   const levelStr = `Lv.${s.level}`;
   const xpStr = `${s.xp}XP`;
   const line2 = `${levelStr} ${stageLabel} ${shinyMark}${rarityLabel} ${engine.emotionEmoji} ${xpStr}`;
+  // CJK-aware: rarity/stage names are Chinese, shiny/emotion are emoji
   lines.push(`│${visualPadEnd(line2, I)}│`);
 
   // Separator
   lines.push(`│${'─'.repeat(I)}│`);
 
   // Bubble line
-  lines.push(`│💬 ${lastBubble.slice(0, I - 3).padEnd(I - 3)}│`);
+  // CJK-aware bubble: slice & pad by visual width
+  let bubbleText = '';
+  for (const ch of lastBubble) {
+    if (visualLen(bubbleText + ch) > I - 3) break;
+    bubbleText += ch;
+  }
+  lines.push(`│💬 ${visualPadEnd(bubbleText, I - 3)}│`);
 
   // Stats line: H/E + emotion
   const happinessLabel = s.bones.isShiny ? 'SHINY' : 'Happy';
   const stats = `H:${String(s.needs.hunger).padStart(3)} E:${String(s.needs.energy).padStart(3)} ${engine.emotionEmoji} ${happinessLabel}`;
-  lines.push(`│${visualPadEnd(stats, I)}│`);
-
-  // Bottom border
+  // CJK-aware: happinessLabel may be non-ASCII, emotionEmoji is 2-col
   lines.push(`└${'─'.repeat(I)}┘`);
 
   return lines;

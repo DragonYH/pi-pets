@@ -9,6 +9,8 @@ import { stageDisplayName } from '../evolution.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
 
 
+
+
 /**
  * Non-capturing overlay component that renders the pet panel
  * at the top-right of the terminal, without intercepting keyboard input.
@@ -49,7 +51,8 @@ export class PetOverlayComponent implements Component {
     const art = getCodexFrame(s.bones.species, codexState, this.animationFrame);
     if (art.length > 0) {
       for (const row of art) {
-        const centered = visualPadStart(row, Math.floor((innerW + visualLen(row)) / 2));
+        const clamped = visualClamp(row, innerW);
+        const centered = visualPadStart(clamped, Math.floor((innerW + visualLen(clamped)) / 2));
         lines.push(`│${visualPadEnd(centered, innerW)}│`);
       }
     } else {
@@ -64,7 +67,8 @@ export class PetOverlayComponent implements Component {
     const shinyMark = s.bones.isShiny ? '✨ ' : '';
     const speciesLabel = `${shinyMark}${s.bones.species.toUpperCase()}`;
     const nameDisplay = visualLen(s.name) > 14 ? visualClamp(s.name, 13) + '\u2026' : s.name;
-    lines.push(`│${visualPadEnd(speciesLabel, 10)}${visualPadStart(nameDisplay, innerW - 10)}│`);
+    const speciesW = Math.min(10, innerW);
+    lines.push(`│${visualPadEnd(speciesLabel, speciesW)}${visualPadStart(nameDisplay, innerW - speciesW)}│`);
 
     // Info line 2: Lv, stage
     const stageLabel = stageDisplayName(s.stage);
@@ -75,7 +79,11 @@ export class PetOverlayComponent implements Component {
 
     // Bubble line
     const bubble = this.engine.currentBubble || getRandomBubble(s.emotion);
-    const bubbleText = bubble.slice(0, innerW - 3);
+    let bubbleText = '';
+    for (const ch of bubble) {
+      if (visualLen(bubbleText + ch) > innerW - 3) break;
+      bubbleText += ch;
+    }
     lines.push(`│💬 ${visualPadEnd(bubbleText, innerW - 3)}│`);
 
     // Stats line
