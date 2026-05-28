@@ -68,7 +68,7 @@ export class PetOverlayComponent implements Component {
 
     // Info line 2: Lv, stage
     const stageLabel = stageDisplayName(s.stage);
-    lines.push(`│Lv.${s.level} ${stageLabel}${' '.repeat(Math.max(0, innerW - 2 - String(s.level).length - stageLabel.length))}│`);
+    lines.push(`│${visualPadEnd(`Lv.${s.level} ${stageLabel}`, innerW)}│`);
 
     // Separator
     lines.push(`│${'─'.repeat(innerW)}│`);
@@ -82,7 +82,8 @@ export class PetOverlayComponent implements Component {
     const h = Math.round(s.needs.hunger);
     const e = Math.round(s.needs.energy);
     const hap = Math.round(s.needs.happiness);
-    lines.push(`│H:${String(h).padStart(3)} E:${String(e).padStart(3)} ${this.engine.emotionEmoji} ${String(hap).padStart(3)}│`);
+    const statsStr = `H:${String(h).padStart(3)} E:${String(e).padStart(3)} ${this.engine.emotionEmoji} ${String(hap).padStart(3)}`;
+    lines.push(`│${visualPadEnd(visualClamp(statsStr, innerW), innerW)}│`);
 
     // └──────────┘
     lines.push(`╰${'─'.repeat(innerW)}╯`);

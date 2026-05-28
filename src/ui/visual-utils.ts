@@ -12,7 +12,6 @@
  * lastIndex, causing off-by-one / intermittent failures.
  */
 
-const ANSI_RE = /\x1b\[[0-9;]*m/;
 
 /** Ranges of Unicode code-points that occupy 2 columns in a terminal. */
 function isWideCode(code: number): boolean {

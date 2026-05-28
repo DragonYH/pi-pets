@@ -62,7 +62,7 @@ export function buildWidget(
   const levelStr = `Lv.${s.level}`;
   const xpStr = `${s.xp}XP`;
   const line2 = `${levelStr} ${stageLabel} ${shinyMark}${rarityLabel} ${engine.emotionEmoji} ${xpStr}`;
-  lines.push(`│${line2.padEnd(I)}│`);
+  lines.push(`│${visualPadEnd(line2, I)}│`);
 
   // Separator
   lines.push(`│${'─'.repeat(I)}│`);
@@ -73,7 +73,7 @@ export function buildWidget(
   // Stats line: H/E + emotion
   const happinessLabel = s.bones.isShiny ? 'SHINY' : 'Happy';
   const stats = `H:${String(s.needs.hunger).padStart(3)} E:${String(s.needs.energy).padStart(3)} ${engine.emotionEmoji} ${happinessLabel}`;
-  lines.push(`│${stats.padEnd(I)}│`);
+  lines.push(`│${visualPadEnd(stats, I)}│`);
 
   // Bottom border
   lines.push(`└${'─'.repeat(I)}┘`);
