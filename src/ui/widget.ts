@@ -1,12 +1,8 @@
 import type { PetEngine } from '../pet_instance.ts';
 import { stageDisplayName } from '../evolution.ts';
 import { getCodexFrame, getCurrentAnimation } from '../codex/art-provider.ts';
+import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
 
-/** Strip ANSI escape sequences to count visible characters only. */
-const ANSI_RE = /\x1b\[[0-9;]*m/g;
-const visualLen = (s: string) => s.replace(ANSI_RE, '').length;
-const visualPadStart = (s: string, w: number, ch = ' ') => { const d = w - visualLen(s); return d > 0 ? ch.repeat(d) + s : s; };
-const visualPadEnd = (s: string, w: number, ch = ' ') => { const d = w - visualLen(s); return d > 0 ? s + ch.repeat(d) : s; };
 
 /** Widget constants — every line is exactly W chars. */
 const W = 28;  // total widget width (incl. box-drawing characters)
@@ -43,8 +39,9 @@ export function buildWidget(
   } else {
     // Fallback: no art loaded — show placeholder
     const placeholder = '~~ 未导入 ~~';
-    const left = Math.floor((I - placeholder.length) / 2);
-    lines.push(`│${' '.repeat(left)}${placeholder}${' '.repeat(I - left - placeholder.length)}│`);
+    const vLen = visualLen(placeholder);
+    const left = Math.floor((I - vLen) / 2);
+    lines.push(`│${' '.repeat(left)}${placeholder}${' '.repeat(I - left - vLen)}│`);
   }
 
   // Empty spacer
@@ -53,8 +50,8 @@ export function buildWidget(
   // Info line 1: species (uppercase) + name right-aligned
   const shinyMark = s.bones.isShiny ? '✨ ' : '';
   const speciesLabel = `${shinyMark}${s.bones.species.toUpperCase()}`;
-  const nameDisplay = s.name.length > 14 ? s.name.slice(0, 13) + '…' : s.name;
-  lines.push(`│${speciesLabel.padEnd(10)}${nameDisplay.padStart(I - 10)}│`);
+  const nameDisplay = visualLen(s.name) > 14 ? visualClamp(s.name, 13) + '\u2026' : s.name;
+  lines.push(`│${visualPadEnd(speciesLabel, 10)}${visualPadStart(nameDisplay, I - 10)}│`);
 
   // Info line 2: Lv, stage, rarity, emotion, XP
   const stageLabel = stageDisplayName(s.stage);

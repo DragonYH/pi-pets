@@ -6,18 +6,8 @@ import type { PetEngine } from '../pet_instance.ts';
 import { getCodexFrame, getCurrentAnimation } from '../codex/art-provider.ts';
 import { getRandomBubble } from './bubbles.ts';
 import { stageDisplayName } from '../evolution.ts';
+import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
 
-/** Strip ANSI escape sequences to count visible characters only. */
-const ANSI_RE = /\x1b\[[0-9;]*m/g;
-const visualLen = (s: string) => s.replace(ANSI_RE, '').length;
-const visualPadStart = (s: string, w: number, ch = ' ') => {
-  const d = w - visualLen(s);
-  return d > 0 ? ch.repeat(d) + s : s;
-};
-const visualPadEnd = (s: string, w: number, ch = ' ') => {
-  const d = w - visualLen(s);
-  return d > 0 ? s + ch.repeat(d) : s;
-};
 
 /**
  * Non-capturing overlay component that renders the pet panel
@@ -65,15 +55,16 @@ export class PetOverlayComponent implements Component {
     } else {
       // Fallback: no art loaded — show placeholder
       const placeholder = '~~ no pet ~~';
-      const left = Math.floor((innerW - placeholder.length) / 2);
-      lines.push(`│${' '.repeat(left)}${placeholder}${' '.repeat(innerW - left - placeholder.length)}│`);
+      const vLen = visualLen(placeholder);
+      const left = Math.floor((innerW - vLen) / 2);
+      lines.push(`│${' '.repeat(left)}${placeholder}${' '.repeat(innerW - left - vLen)}│`);
     }
 
     // Info line 1: species (uppercase) + name right-aligned
     const shinyMark = s.bones.isShiny ? '✨ ' : '';
     const speciesLabel = `${shinyMark}${s.bones.species.toUpperCase()}`;
-    const nameDisplay = s.name.length > 14 ? s.name.slice(0, 13) + '...' : s.name;
-    lines.push(`│${speciesLabel.padEnd(10)}${nameDisplay.padStart(innerW - 10)}│`);
+    const nameDisplay = visualLen(s.name) > 14 ? visualClamp(s.name, 13) + '\u2026' : s.name;
+    lines.push(`│${visualPadEnd(speciesLabel, 10)}${visualPadStart(nameDisplay, innerW - 10)}│`);
 
     // Info line 2: Lv, stage
     const stageLabel = stageDisplayName(s.stage);
