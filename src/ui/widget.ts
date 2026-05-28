@@ -5,6 +5,15 @@ import { stageDisplayName } from '../evolution.ts';
 import { FRAMES as PYROFOX_FRAMES } from './art/pyrofox.ts';
 import { FRAMES as RUSTACEAN_FRAMES } from './art/rustacean.ts';
 import { FRAMES as PYTHONIDAE_FRAMES } from './art/pythonidae.ts';
+import { FRAMES as GOPHER_FRAMES } from './art/gopher.ts';
+import { FRAMES as TYPEWHALE_FRAMES } from './art/typewhale.ts';
+import { FRAMES as BASHBAT_FRAMES } from './art/bashbat.ts';
+import { FRAMES as KOTLINCAT_FRAMES } from './art/kotlincat.ts';
+import { FRAMES as JAVAROO_FRAMES } from './art/javaroo.ts';
+import { FRAMES as LISPLIZARD_FRAMES } from './art/lisplizard.ts';
+import { FRAMES as QUERYQUAIL_FRAMES } from './art/queryquail.ts';
+import { FRAMES as HEXHOUND_FRAMES } from './art/hexhound.ts';
+import { FRAMES as PIXELPANDA_FRAMES } from './art/pixelpanda.ts';
 
 
 
@@ -92,8 +101,32 @@ function getArtLines(species: SpeciesId, frame: number): string[] {
     case 'rustacean':
       frames = RUSTACEAN_FRAMES;
       break;
-    case 'pythonidae':
-      frames = PYTHONIDAE_FRAMES;
+    case 'gopher':
+      frames = GOPHER_FRAMES;
+      break;
+    case 'typewhale':
+      frames = TYPEWHALE_FRAMES;
+      break;
+    case 'bashbat':
+      frames = BASHBAT_FRAMES;
+      break;
+    case 'kotlincat':
+      frames = KOTLINCAT_FRAMES;
+      break;
+    case 'javaroo':
+      frames = JAVAROO_FRAMES;
+      break;
+    case 'lisplizard':
+      frames = LISPLIZARD_FRAMES;
+      break;
+    case 'queryquail':
+      frames = QUERYQUAIL_FRAMES;
+      break;
+    case 'hexhound':
+      frames = HEXHOUND_FRAMES;
+      break;
+    case 'pixelpanda':
+      frames = PIXELPANDA_FRAMES;
       break;
     default:
       frames = getGenericArt();
