@@ -1,0 +1,60 @@
+import { CONFIG } from './config.ts';
+
+/**
+ * Calculate level from total XP.
+ * Level = floor(sqrt(xp / BASE))
+ */
+export function getLevel(xp: number): number {
+  return Math.floor(Math.sqrt(xp / CONFIG.LEVEL_CURVE_BASE));
+}
+
+/**
+ * XP needed to reach a given level.
+ */
+export function xpForLevel(level: number): number {
+  return level * level * CONFIG.LEVEL_CURVE_BASE;
+}
+
+/**
+ * Roll XP reward within a range.
+ */
+export function rollXp(min: number, max: number): number {
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+/**
+ * Calculate XP from a turn completion event.
+ */
+export function xpFromTurnComplete(): number {
+  const r = CONFIG.XP_REWARDS.turnComplete;
+  return rollXp(r.min, r.max);
+}
+
+/**
+ * Calculate XP from a successful tool execution.
+ */
+export function xpFromToolSuccess(): number {
+  const r = CONFIG.XP_REWARDS.toolSuccess;
+  return rollXp(r.min, r.max);
+}
+
+/**
+ * Calculate XP from all tests passing in one run.
+ */
+export function xpFromTestsAllPass(): number {
+  return CONFIG.XP_REWARDS.testsAllPass;
+}
+
+/**
+ * Calculate XP from fixing an error.
+ */
+export function xpFromErrorFixed(): number {
+  return CONFIG.XP_REWARDS.errorFixed;
+}
+
+/**
+ * Calculate XP from using a pet command.
+ */
+export function xpFromPetCommand(): number {
+  return CONFIG.XP_REWARDS.petCommand;
+}

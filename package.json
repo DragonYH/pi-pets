@@ -1,0 +1,12 @@
+{
+  "name": "pi-pets",
+  "version": "0.1.0",
+  "description": "A virtual pet system for pi - hatch, raise, and bond with coding companions",
+  "type": "module",
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  },
+  "dependencies": {
+    "typebox": "^1.1.38"
+  }
+}
