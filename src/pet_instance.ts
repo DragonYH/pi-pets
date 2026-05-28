@@ -4,6 +4,7 @@ import { CONFIG } from './config.ts';
 import { hatch } from './hatchery.ts';
 import { generateFallbackName } from './name_generator.ts';
 import { getLevel, xpFromTurnComplete, xpFromToolSuccess, xpFromTestsAllPass, xpFromErrorFixed } from './xp.ts';
+import { mulberry32 } from './prng.ts';
 import { getStage, stageDisplayName, isStageTransition } from './evolution.ts';
 import { tickNeeds, feed, petPet, applyIdleRecovery, emotionFromNeeds } from './needs.ts';
 import { Persistence } from './persistence.ts';
@@ -18,8 +19,15 @@ export class PetEngine {
   private currentErrorCount = 0;
   private currentTestsPassed = 0;
 
+  private xpRng: { next(): number };
+
+  /** Shared render state (set by events/commands, consumed by render loop). */
+  currentBubble: string = '';
+  animationFrame: number = 0;
+
   constructor(baseDir?: string) {
     this.persistence = new Persistence(baseDir);
+    this.xpRng = mulberry32(Date.now());
   }
 
   get hasPet(): boolean {
@@ -30,6 +38,18 @@ export class PetEngine {
     return this.state?.name ?? '无';
   }
 
+  /** Reinitialize PRNG from pet seed (ensures deterministic XP rolls). */
+  private initXpRng(): void {
+    if (this.state) {
+      this.xpRng = mulberry32(this.state.seed ^ 0xdeadbeef);
+    }
+  }
+
+  /** Set the pet's speech bubble text. */
+  setBubble(text: string): void {
+    this.currentBubble = text;
+  }
+
   // ===== Lifecycle =====
 
   /** Load an existing pet from persistence. */
@@ -38,6 +58,7 @@ export class PetEngine {
     if (loaded) {
       this.state = loaded;
       // Apply idle recovery for time spent away
+      this.initXpRng();
       const elapsed = Date.now() - this.state.lastTickTimestamp;
       if (elapsed > 60_000) {
         applyIdleRecovery(this.state.needs, elapsed);
@@ -81,6 +102,7 @@ export class PetEngine {
       unlockedSkills: [],
       equippedSkills: [],
     };
+    this.initXpRng();
     await this.save();
     return { name: this.state.name, stage: this.state.stage };
   }
@@ -145,7 +167,7 @@ export class PetEngine {
 
   /** Called after each turn completes. */
   onTurnComplete(): { xpGained: number; leveledUp: boolean; newStage: GrowthStage | null } {
-    const amount = xpFromTurnComplete();
+    const amount = xpFromTurnComplete(this.xpRng);
     const result = this.addXp(amount);
     return { xpGained: amount, ...result };
   }
@@ -155,7 +177,7 @@ export class PetEngine {
     if (!this.state) return;
 
     if (success && !isError) {
-      this.addXp(xpFromToolSuccess());
+      this.addXp(xpFromToolSuccess(this.xpRng));
     }
 
     // Track errors for emotion

@@ -74,7 +74,7 @@ export function buildWidget(
 
   // Bubble
   lines.push(`│                          │`);
-  lines.push(`│ 💬 "${lastBubble.padEnd(20)}│`);
+  lines.push(`│ 💬 "${lastBubble.slice(0, 18).padEnd(18)}"│`);
 
   // Bottom border
   lines.push('└──────────────────────────┘');

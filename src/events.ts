@@ -9,8 +9,8 @@ const WIDGET_KEY = 'pi-pets';
 
 export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
   let tickTimer: ReturnType<typeof setInterval> | null = null;
-  let currentBubble = getRandomBubble('happy');
-  let lastBubbleTime = Date.now();
+  let renderTimer: ReturnType<typeof setInterval> | null = null;
+  let lastBubbleRefreshTime = Date.now();
 
   // ---- Session start: load state ----
   pi.on('session_start', async (_event, ctx) => {
@@ -24,21 +24,32 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
         tickTimer = setInterval(() => {
           const emotionChange = engine.tick();
           if (emotionChange) {
-            // Bubble refresh on emotion change
-            currentBubble = getRandomBubble(emotionChange);
+            engine.setBubble(getRandomBubble(emotionChange));
           }
-          // Periodic bubble refresh
           const now = Date.now();
-          if (now - lastBubbleTime > CONFIG.BUBBLE_INTERVAL && engine.state) {
-            currentBubble = getRandomBubble(engine.state.emotion);
-            lastBubbleTime = now;
+          if (now - lastBubbleRefreshTime > CONFIG.BUBBLE_INTERVAL && engine.state) {
+            engine.setBubble(getRandomBubble(engine.state.emotion));
+            lastBubbleRefreshTime = now;
           }
         }, CONFIG.TICK_INTERVAL);
       }
 
+      // Start render timer (single animation loop)
+      if (renderTimer === null) {
+        renderTimer = setInterval(() => {
+          if (!engine.hasPet) return;
+          engine.animationFrame = (engine.animationFrame + 1) % CONFIG.ANIM_FRAMES;
+          const bubble = engine.currentBubble || getRandomBubble('happy');
+          const lines = buildWidget(engine, engine.animationFrame, bubble);
+          ctx.ui.setWidget(WIDGET_KEY, lines);
+          ctx.ui.setStatus('pet', buildFooterStatus(engine));
+        }, CONFIG.RENDER_INTERVAL);
+      }
+
       // Show widget after a short delay
       setTimeout(() => {
-        ctx.ui.setWidget(WIDGET_KEY, buildWidget(engine, 0, currentBubble));
+        const bubble = engine.currentBubble || getRandomBubble('happy');
+        ctx.ui.setWidget(WIDGET_KEY, buildWidget(engine, 0, bubble));
         ctx.ui.setStatus('pet', buildFooterStatus(engine));
       }, 500);
     }
@@ -51,6 +62,10 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
       clearInterval(tickTimer);
       tickTimer = null;
     }
+    if (renderTimer !== null) {
+      clearInterval(renderTimer);
+      renderTimer = null;
+    }
   });
 
   // ---- Turn end: XP and emotion ----
@@ -60,15 +75,15 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
     const { leveledUp, newStage, xpGained } = engine.onTurnComplete();
 
     // Show bubble about XP gained
-    currentBubble = `赚了 ${xpGained} XP！`;
-    lastBubbleTime = Date.now();
+    engine.setBubble(`赚了 ${xpGained} XP！`);
+    lastBubbleRefreshTime = Date.now();
 
     // Handle level-up
     if (leveledUp && engine.state) {
       const { levelUpOverlay } = await import('./ui/overlay.ts');
       ctx.ui.setWidget(WIDGET_KEY, levelUpOverlay(engine.state.name, engine.state.level));
       setTimeout(() => {
-        ctx.ui.setWidget(WIDGET_KEY, buildWidget(engine, 0, currentBubble));
+        ctx.ui.setWidget(WIDGET_KEY, buildWidget(engine, 0, engine.currentBubble));
         ctx.ui.setStatus('pet', buildFooterStatus(engine));
       }, 2500);
     }
@@ -78,7 +93,7 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
       const { evolutionOverlay } = await import('./ui/overlay.ts');
       ctx.ui.setWidget(WIDGET_KEY, evolutionOverlay(engine.state.name, newStage));
       setTimeout(() => {
-        ctx.ui.setWidget(WIDGET_KEY, buildWidget(engine, 0, currentBubble));
+        ctx.ui.setWidget(WIDGET_KEY, buildWidget(engine, 0, engine.currentBubble));
         ctx.ui.setStatus('pet', buildFooterStatus(engine));
       }, 3000);
     }

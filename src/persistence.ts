@@ -27,7 +27,11 @@ export class Persistence {
       await mkdir(dir, { recursive: true });
     }
     const data = JSON.stringify(state, null, 2);
-    await writeFile(this.filePath, data, 'utf-8');
+    // Atomic write: write to tmp then rename
+    const tmpPath = this.filePath + '.tmp';
+    await writeFile(tmpPath, data, 'utf-8');
+    const { rename } = await import('node:fs/promises');
+    await rename(tmpPath, this.filePath);
   }
 
   async load(): Promise<PetState | null> {
@@ -78,7 +82,7 @@ function migrate(raw: unknown): PetState | null {
     ) {
       return null;
     }
-    return obj as PetState;
+    return obj as unknown as PetState;
   }
 
   return null;

@@ -71,5 +71,9 @@ export function emotionFromNeeds(needs: Needs): EmotionState {
   if (happiness < 50) {
     return 'frustrated';
   }
+  // Curious: comfortable enough but not fully satisfied
+  if (energy > 60 && hunger > 50) {
+    return 'curious';
+  }
   return 'happy';
 }

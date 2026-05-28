@@ -5,6 +5,7 @@ import { buildFooterStatus } from './ui/footer.ts';
 import { getRandomBubble } from './ui/bubbles.ts';
 import { levelUpOverlay, evolutionOverlay } from './ui/overlay.ts';
 import { hashString } from './prng.ts';
+import { xpFromPetCommand, xpFromFeedCommand } from './xp.ts';
 
 const WIDGET_KEY = 'pi-pets';
 
@@ -128,6 +129,7 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
             return;
           }
           engine.doPet();
+          engine.addXp(xpFromPetCommand());
           currentBubble = '嗯～好舒服～';
           updateWidget(ctx);
           ctx.ui.notify('你摸了摸宠物，它很开心！', 'info');
@@ -141,6 +143,7 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
             return;
           }
           engine.doFeed();
+          engine.addXp(xpFromFeedCommand());
           currentBubble = '好吃！谢谢～';
           updateWidget(ctx);
           ctx.ui.notify('宠物吃饱了！', 'info');
@@ -158,10 +161,16 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
             ctx.ui.notify('请提供新名称：/pets name <新名字>', 'warning');
             return;
           }
-          engine.state!.name = newName;
+          // Validate: filter control chars, trim, length check
+          const sanitized = newName.replace(/[\x00-\x1F\x7F]/g, '').trim();
+          if (!sanitized || sanitized.length > 32) {
+            ctx.ui.notify('名称长度需在 1-32 字符之间，且不能包含控制字符', 'warning');
+            return;
+          }
+          engine.state!.name = sanitized;
           await engine.save();
           updateWidget(ctx);
-          ctx.ui.notify(`宠物已重命名为 "${newName}"`, 'info');
+          ctx.ui.notify(`宠物已重命名为 "${sanitized}"`, 'info');
           break;
         }
 
