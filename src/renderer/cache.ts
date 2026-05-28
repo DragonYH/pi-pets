@@ -3,13 +3,13 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { CONFIG } from '../config.ts';
-import type { CodexCacheEntry } from '../types.ts';
+import type { CacheEntry } from '../types.ts';
 
 /**
- * Get the absolute path to the codex cache directory.
+ * Get the absolute path to the pet cache directory.
  */
 function cacheDir(): string {
-  return join(homedir(), CONFIG.CODEX_CACHE_DIR);
+  return join(homedir(), CONFIG.PET_CACHE_DIR);
 }
 
 /**
@@ -32,14 +32,14 @@ async function ensureCacheDir(): Promise<void> {
 }
 
 /**
- * Load a cached CodexCacheEntry for the given species.
+ * Load a cached CacheEntry for the given species.
  * Returns null if cache does not exist or is unreadable.
  */
-export async function loadCache(speciesId: string): Promise<CodexCacheEntry | null> {
+export async function loadCache(speciesId: string): Promise<CacheEntry | null> {
   const path = cachePath(speciesId);
   try {
     const raw = await readFile(path, 'utf-8');
-    const parsed = JSON.parse(raw) as CodexCacheEntry;
+    const parsed = JSON.parse(raw) as CacheEntry;
     // Basic validation
     if (parsed && parsed.speciesId === speciesId && parsed.frames) {
       return parsed;
@@ -51,9 +51,9 @@ export async function loadCache(speciesId: string): Promise<CodexCacheEntry | nu
 }
 
 /**
- * Save a CodexCacheEntry.
+ * Save a CacheEntry.
  */
-export async function saveCache(speciesId: string, entry: CodexCacheEntry): Promise<void> {
+export async function saveCache(speciesId: string, entry: CacheEntry): Promise<void> {
   await ensureCacheDir();
   const path = cachePath(speciesId);
   // Atomic write: write to tmp then rename

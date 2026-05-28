@@ -4,8 +4,8 @@ import { buildFooterStatus } from './ui/footer.ts';
 import { getRandomBubble } from './ui/bubbles.ts';
 import { hashString } from './prng.ts';
 import { xpFromPetCommand, xpFromFeedCommand } from './xp.ts';
-import { importCodexPet } from './codex/importer.ts';
-import { loadCodexPet, setAnimationOverride } from './codex/art-provider.ts';
+import { importPet } from './renderer/importer.ts';
+import { loadPet, setAnimationOverride } from './renderer/art-provider.ts';
 
 export function registerCommands(
   pi: ExtensionAPI,
@@ -31,7 +31,7 @@ export function registerCommands(
         { value: 'name',    label: 'name',    description: '给宠物改名' },
         { value: 'toggle',  label: 'toggle',  description: '显示/隐藏宠物面板' },
         { value: 'release', label: 'release', description: '放生当前宠物（不可撤销）' },
-        { value: 'import',  label: 'import',  description: '导入 Codex 精灵图宠物' },
+        { value: 'import',  label: 'import',  description: '导入精灵图宠物' },
       ];
       return subcommands
         .filter((c) => c.value.startsWith(prefix))
@@ -50,7 +50,7 @@ export function registerCommands(
             return;
           }
           try {
-            const result = await importCodexPet(pathArg);
+            const result = await importPet(pathArg);
 
             // Release current pet if any
             if (engine.hasPet) {
@@ -59,11 +59,11 @@ export function registerCommands(
             }
 
             // Hatch the imported pet
-            const seed = hashString(`codex-${result.speciesId}-${Date.now()}`);
+            const seed = hashString(`imported-${result.speciesId}-${Date.now()}`);
             await engine.hatch(seed, result.speciesId);
 
-            // Preload Codex frames into memory
-            await loadCodexPet(result.speciesId);
+            // Preload pet frames into memory
+            await loadPet(result.speciesId);
 
             engine.setBubble(getRandomBubble('excited'));
             ctx.ui.setStatus('pet', buildFooterStatus(engine));

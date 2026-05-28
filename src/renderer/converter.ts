@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { CONFIG } from '../config.ts';
-import type { CodexAnimationState } from '../types.ts';
+import type { AnimationState } from '../types.ts';
 
 /**
  * RGBA pixel: [r, g, b, a]
@@ -18,7 +18,7 @@ export type PixelFrame = RGBAPixel[][];
 export type ConversionResult = Record<string, PixelFrame[]>;
 
 /** Animation state names in the order they appear in the spritesheet (9 rows). */
-const SPRITESHEET_STATES: CodexAnimationState[] = [
+const SPRITESHEET_STATES: AnimationState[] = [
   'idle',
   'run',
   'sleep',
@@ -31,11 +31,11 @@ const SPRITESHEET_STATES: CodexAnimationState[] = [
 ];
 
 /**
- * Load a Codex spritesheet.webp and convert each frame to a pixel grid.
+ * Load a spritesheet.webp and convert each frame to a pixel grid.
  *
  * Spritesheet layout: 8 columns × 9 rows, each frame 192×208px.
  * We take even columns (0,2,4,6) → 4 frames per state.
- * Each frame is downsampled to CODEX_RENDER_WIDTH × CODEX_RENDER_HEIGHT.
+ * Each frame is downsampled to FRAME_WIDTH × FRAME_HEIGHT.
  *
  * @param webpPath - Path to the spritesheet.webp file
  * @returns A map of animation state name → 4 PixelFrame arrays
@@ -48,12 +48,12 @@ export async function convertSpritesheet(webpPath: string): Promise<ConversionRe
     throw new Error(`Unable to read spritesheet dimensions: ${webpPath}`);
   }
 
-  const frameW = CONFIG.CODEX_FRAME_WIDTH;
-  const frameH = CONFIG.CODEX_FRAME_HEIGHT;
-  const cols = CONFIG.CODEX_SPRITESHEET_COLS;
-  const rows = CONFIG.CODEX_SPRITESHEET_ROWS;
-  const renderW = CONFIG.CODEX_RENDER_WIDTH;
-  const renderH = CONFIG.CODEX_RENDER_HEIGHT;
+  const frameW = CONFIG.FRAME_WIDTH;
+  const frameH = CONFIG.FRAME_HEIGHT;
+  const cols = CONFIG.SPRITESHEET_COLS;
+  const rows = CONFIG.SPRITESHEET_ROWS;
+  const renderW = CONFIG.RENDER_WIDTH;
+  const renderH = CONFIG.RENDER_HEIGHT;
 
   if (metadata.width < cols * frameW || metadata.height < rows * frameH) {
     throw new Error(

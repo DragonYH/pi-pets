@@ -3,10 +3,12 @@ interface Component { render(width: number): string[]; invalidate(): void; }
 // eslint-disable-next-line
 type TUI = any;
 import type { PetEngine } from '../pet_instance.ts';
-import { getCodexFrame, getCurrentAnimation } from '../codex/art-provider.ts';
+import { getFrame, getCurrentAnimation } from '../renderer/art-provider.ts';
 import { getRandomBubble } from './bubbles.ts';
 import { stageDisplayName } from '../evolution.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
+
+import { CONFIG } from '../config.ts';
 
 
 
@@ -39,6 +41,10 @@ export class PetOverlayComponent implements Component {
   render(width: number): string[] {
     if (!this.engine.hasPet || !this.engine.state) return [];
 
+    const termRows = (this.tui as any)?.terminal?.rows;
+    if (typeof termRows === 'number' && termRows < CONFIG.OVERLAY_COMPACT_MIN_ROWS) return [];
+    if (typeof termRows === 'number' && termRows < CONFIG.OVERLAY_FULL_MIN_ROWS) return this.renderCompact(width);
+
     const s = this.engine.state;
     const innerW = Math.max(1, width - 2);
     const lines: string[] = [];
@@ -46,9 +52,9 @@ export class PetOverlayComponent implements Component {
     // ┌──────────┐
     lines.push(`╭${'─'.repeat(innerW)}╮`);
 
-    // Codex art (5 rows from half-block rendering)
-    const codexState = getCurrentAnimation(s.emotion);
-    const art = getCodexFrame(s.bones.species, codexState, this.animationFrame);
+    // Pet art from half-block rendering
+    const animState = getCurrentAnimation(s.emotion);
+    const art = getFrame(s.bones.species, animState, this.animationFrame);
     if (art.length > 0) {
       for (const row of art) {
         const clamped = visualClamp(row, innerW);
@@ -76,6 +82,46 @@ export class PetOverlayComponent implements Component {
 
     // Separator
     lines.push(`│${'─'.repeat(innerW)}│`);
+
+    // Bubble line
+    const bubble = this.engine.currentBubble || getRandomBubble(s.emotion);
+    let bubbleText = '';
+    for (const ch of bubble) {
+      if (visualLen(bubbleText + ch) > innerW - 3) break;
+      bubbleText += ch;
+    }
+    lines.push(`│💬 ${visualPadEnd(bubbleText, innerW - 3)}│`);
+
+    // Stats line
+    const h = Math.round(s.needs.hunger);
+    const e = Math.round(s.needs.energy);
+    const hap = Math.round(s.needs.happiness);
+    const statsStr = `H:${String(h).padStart(3)} E:${String(e).padStart(3)} ${this.engine.emotionEmoji} ${String(hap).padStart(3)}`;
+    lines.push(`│${visualPadEnd(visualClamp(statsStr, innerW), innerW)}│`);
+
+    // └──────────┘
+    lines.push(`╰${'─'.repeat(innerW)}╯`);
+    return lines;
+  }
+
+  private renderCompact(width: number): string[] {
+    const s = this.engine.state!;
+    const innerW = Math.max(1, width - 2);
+    const lines: string[] = [];
+
+    // ┌──────────┐
+    lines.push(`╭${'─'.repeat(innerW)}╮`);
+
+    // Info line 1: species (uppercase) + name right-aligned
+    const shinyMark = s.bones.isShiny ? '✨ ' : '';
+    const speciesLabel = `${shinyMark}${s.bones.species.toUpperCase()}`;
+    const nameDisplay = visualLen(s.name) > 14 ? visualClamp(s.name, 13) + '…' : s.name;
+    const speciesW = Math.min(10, innerW);
+    lines.push(`│${visualPadEnd(speciesLabel, speciesW)}${visualPadStart(nameDisplay, innerW - speciesW)}│`);
+
+    // Info line 2: Lv, stage
+    const stageLabel = stageDisplayName(s.stage);
+    lines.push(`│${visualPadEnd(`Lv.${s.level} ${stageLabel}`, innerW)}│`);
 
     // Bubble line
     const bubble = this.engine.currentBubble || getRandomBubble(s.emotion);

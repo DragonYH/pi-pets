@@ -46,6 +46,10 @@ export const CONFIG = {
 
   SHINY_CHANCE: 0.01,
 
+  // ---- Overlay ----
+  OVERLAY_FULL_MIN_ROWS: 31,
+  OVERLAY_COMPACT_MIN_ROWS: 10,
+
   // ---- Timers ----
   TICK_INTERVAL: 60_000,
   RENDER_INTERVAL: 500,
@@ -61,13 +65,13 @@ export const CONFIG = {
   // ---- Pet state schema version ----
   STATE_VERSION: 1 as const,
 
-  // ---- Codex ----
+  // ---- Rendering ----
 
-  CODEX_CACHE_DIR: '.pi/pets/codex-cache',
-  CODEX_SPRITESHEET_COLS: 8,
-  CODEX_SPRITESHEET_ROWS: 9,
-  CODEX_FRAME_WIDTH: 192,
-  CODEX_FRAME_HEIGHT: 208,
-  CODEX_RENDER_WIDTH: 34,
-  CODEX_RENDER_HEIGHT: 32,
+  PET_CACHE_DIR: '.pi/pets/pet-cache',
+  SPRITESHEET_COLS: 8,
+  SPRITESHEET_ROWS: 9,
+  FRAME_WIDTH: 192,
+  FRAME_HEIGHT: 208,
+  RENDER_WIDTH: 34,
+  RENDER_HEIGHT: 32,
 } as const;

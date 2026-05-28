@@ -118,9 +118,9 @@ export interface WidgetData {
   animationFrame: number;
 }
 
-// ===== Codex Animation =====
+// ===== Animation =====
 
-export type CodexAnimationState =
+export type AnimationState =
   | 'idle'
   | 'run'
   | 'sleep'
@@ -132,10 +132,10 @@ export type CodexAnimationState =
   | 'failed';
 
 /**
- * Cached rendering of a codex pet's frames.
- * frames & asciiFallback: keyed by CodexAnimationState, value is frame[][line][]
+ * Cached rendering of a pet's frames.
+ * frames & textFallback: keyed by AnimationState, value is frame[][line][]
  */
-export interface CodexCacheEntry {
+export interface CacheEntry {
   version: number;
   speciesId: string;
   meta: {
@@ -143,5 +143,5 @@ export interface CodexCacheEntry {
     emoji: string;
   };
   frames: Record<string, string[][]>;
-  asciiFallback: Record<string, string[][]>;
+  textFallback: Record<string, string[][]>;
 }

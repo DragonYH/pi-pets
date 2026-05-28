@@ -32,7 +32,7 @@ pi-pets 是 [pi 编码助手](https://github.com/earendil-works/pi-coding-agent)
 - ✅ **7 种情绪状态** — 开心、好奇、兴奋、疲惫、饥饿、沮丧、生病——由需求和编码事件驱动
 - ✅ **3 轴需求系统** — 饥饿、精力、快乐随时间衰减；喂食和抚摸让你的宠物保持健康
 - ✅ **事件驱动反应** — 完成对话轮次、工具调用、测试通过、修复错误均可获得经验值
-- ✅ **ASCII 动画** — 每个物种 4 帧待机动画，纯 ASCII + Nerd Font 符号
+- ✅ **精灵图动画** — 导入宠物使用与 Codex 相同的宠物文件（pet.json + spritesheet.webp），以真彩色半块 ANSI 艺术渲染
 - ✅ **状态栏 + 面板 UI** — 始终可见的底部状态行，以及可切换的 Widget 面板
 - ✅ **全局伙伴** — 一只宠物跨所有项目陪伴你
 
@@ -222,24 +222,19 @@ pi-pets/
 │   ├── evolution.ts               # 成长阶段逻辑
 │   ├── commands.ts                # /pets 命令注册（7 个子命令）
 │   ├── events.ts                  # 生命周期事件绑定 + UI 渲染循环
+│   ├── renderer/                   # 宠物渲染管线
+│   │   ├── art-provider.ts        # 帧缓存与动画状态管理
+│   │   ├── cache.ts               # 持久帧缓存 (~/.pi/pets/pet-cache/)
+│   │   ├── converter.ts           # Spritesheet.webp → 像素网格转换
+│   │   ├── importer.ts            # pet.json + spritesheet.webp 导入流程
+│   │   └── renderer.ts            # ANSI 半块与文本回退渲染
 │   └── ui/
 │       ├── footer.ts              # 状态栏渲染
-│       ├── widget.ts              # 面板渲染（精灵 + 属性条 + 气泡）
+│       ├── widget.ts              # 面板渲染（宠物图 + 属性条 + 气泡）
+│       ├── pet-overlay.ts         # 宠物覆盖层显示逻辑
+│       ├── visual-utils.ts        # 可视化工具函数
 │       ├── overlay.ts             # 升级/进化特效
-│       ├── bubbles.ts             # 7 情绪 × 5 条对话气泡池
-│       └── art/                   # ASCII 精灵帧（12 物种 × 4 帧）
-│           ├── pyrofox.ts
-│           ├── rustacean.ts
-│           ├── pythonidae.ts
-│           ├── gopher.ts
-│           ├── typewhale.ts
-│           ├── bashbat.ts
-│           ├── kotlincat.ts
-│           ├── javaroo.ts
-│           ├── lisplizard.ts
-│           ├── queryquail.ts
-│           ├── hexhound.ts
-│           └── pixelpanda.ts
+│       └── bubbles.ts             # 7 情绪 × 5 条对话气泡池
 ├── tsconfig.json
 ├── package.json
 ├── README.md

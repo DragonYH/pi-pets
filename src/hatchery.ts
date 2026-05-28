@@ -31,14 +31,14 @@ export function hatch(seed: number, speciesOverride?: string): PetBones {
     if (found) {
       speciesDef = found;
     } else {
-      // Imported Codex pet — create a default species definition
+      // Imported pet — create a default species definition
       speciesDef = {
         id: speciesOverride as SpeciesId,
         name: speciesOverride,
         nameEn: speciesOverride,
         emoji: '🐾',
-        description: 'Imported Codex pet',
-        domain: 'codex',
+        description: 'Imported pet',
+        domain: 'imported',
         baseStats: { debugging: 50, patience: 50, chaos: 50, wisdom: 50, snark: 50 },
       };
     }

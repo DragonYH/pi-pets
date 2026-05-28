@@ -2,14 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { convertSpritesheet, type ConversionResult } from './converter.ts';
 import { renderAnsiFrames } from './renderer.ts';
-import { renderAsciiFrames } from './ascii-fallback.ts';
+import { renderTextFrames } from './renderer.ts';
 import { saveCache } from './cache.ts';
-import type { CodexCacheEntry, CodexAnimationState } from '../types.ts';
+import type { CacheEntry, AnimationState } from '../types.ts';
 
-const CODEX_CACHE_VERSION = 1;
+const CACHE_VERSION = 1;
 
 /**
- * Result of importing a Codex pet.
+ * Result of importing a pet.
  */
 export interface ImportResult {
   speciesId: string;
@@ -29,18 +29,18 @@ interface PetJsonMeta {
 }
 
 /**
- * Import a Codex pet from a directory containing pet.json + spritesheet.webp.
+ * Import a pet from a directory containing pet.json + spritesheet.webp.
  *
  * The function:
  * 1. Reads and validates pet.json
  * 2. Converts the spritesheet to pixel grids
- * 3. Generates ANSI and ASCII fallback caches
- * 4. Saves the cache to ~/.pi/pets/codex-cache/{speciesId}.json
+ * 3. Generates ANSI and text fallback caches
+ * 4. Saves the cache to ~/.pi/pets/pet-cache/{speciesId}.json
  *
  * @param petDir - Path to the directory containing pet.json and spritesheet.webp
  * @returns Import result with speciesId and displayName
  */
-export async function importCodexPet(petDir: string): Promise<ImportResult> {
+export async function importPet(petDir: string): Promise<ImportResult> {
   const jsonPath = join(petDir, 'pet.json');
   const webpPath = join(petDir, 'spritesheet.webp');
 
@@ -66,9 +66,9 @@ export async function importCodexPet(petDir: string): Promise<ImportResult> {
 
   // Generate render caches for all states
   const frames: Record<string, string[][]> = {};
-  const asciiFallback: Record<string, string[][]> = {};
+  const textFallback: Record<string, string[][]> = {};
 
-  const stateKeys: CodexAnimationState[] = [
+  const stateKeys: AnimationState[] = [
     'idle', 'run', 'sleep', 'eat', 'attack', 'hurt', 'jump', 'play', 'failed',
   ];
 
@@ -76,20 +76,20 @@ export async function importCodexPet(petDir: string): Promise<ImportResult> {
     const pixelFrames = conversion[state];
     if (pixelFrames && pixelFrames.length > 0) {
       frames[state] = renderAnsiFrames(pixelFrames);
-      asciiFallback[state] = renderAsciiFrames(pixelFrames);
+      textFallback[state] = renderTextFrames(pixelFrames);
     }
   }
 
   // Build cache entry
-  const entry: CodexCacheEntry = {
-    version: CODEX_CACHE_VERSION,
+  const entry: CacheEntry = {
+    version: CACHE_VERSION,
     speciesId,
     meta: {
       displayName,
       emoji,
     },
     frames,
-    asciiFallback,
+    textFallback,
   };
 
   // Persist cache

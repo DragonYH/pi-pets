@@ -1,17 +1,39 @@
 import { loadCache } from './cache.ts';
-import { supportsTrueColor } from './terminal-detect.ts';
-import type { CodexAnimationState, CodexCacheEntry } from '../types.ts';
+import type { AnimationState, CacheEntry } from '../types.ts';
 
 /**
- * In-memory cache of loaded Codex pet frames.
- * Populated by calling loadCodexPet() once per pet species.
+ * In-memory cache of loaded pet frames.
+ * Populated by calling loadPet() once per pet species.
  */
-const frameCache = new Map<string, CodexCacheEntry>();
+const frameCache = new Map<string, CacheEntry>();
 
 /**
- * Map pi-pets EmotionState to CodexAnimationState.
+ * Check if the terminal supports true color (24-bit).
  */
-export function emotionToCodexState(emotion: string): CodexAnimationState {
+function supportsTrueColor(): boolean {
+  // If NO_COLOR is set, never use ANSI color
+  if (process.env.NO_COLOR !== undefined) {
+    return false;
+  }
+
+  const colorterm = process.env.COLORTERM ?? '';
+  if (colorterm === 'truecolor' || colorterm === '24bit') {
+    return true;
+  }
+
+  const term = process.env.TERM ?? '';
+  if (term === 'xterm-256color' || term === 'xterm' || term === 'xterm-kitty') {
+    return true;
+  }
+
+  // Default to false for safety
+  return false;
+}
+
+/**
+ * Map pi-pets EmotionState to AnimationState.
+ */
+export function emotionToAnimState(emotion: string): AnimationState {
   switch (emotion) {
     case 'happy':
     case 'curious':
@@ -32,9 +54,9 @@ export function emotionToCodexState(emotion: string): CodexAnimationState {
 }
 
 /**
- * Map special events to CodexAnimationState.
+ * Map special events to AnimationState.
  */
-export function eventToCodexState(event: string): CodexAnimationState {
+export function eventToAnimState(event: string): AnimationState {
   switch (event) {
     case 'evolve':
       return 'jump';
@@ -50,10 +72,10 @@ export function eventToCodexState(event: string): CodexAnimationState {
 /**
  * Animation override state — set by special events (evolve, pet).
  */
-let animationOverride: CodexAnimationState | null = null;
+let animationOverride: AnimationState | null = null;
 let overrideExpiresAt: number = 0;
 
-export function setAnimationOverride(state: CodexAnimationState, durationMs: number = 2000) {
+export function setAnimationOverride(state: AnimationState, durationMs: number = 2000) {
   animationOverride = state;
   overrideExpiresAt = Date.now() + durationMs;
 }
@@ -62,62 +84,63 @@ export function setAnimationOverride(state: CodexAnimationState, durationMs: num
  * Get the current animation state, checking overrides first.
  * Falls back to emotion mapping if no active override.
  */
-export function getCurrentAnimation(emotion: string): CodexAnimationState {
+export function getCurrentAnimation(emotion: string): AnimationState {
   if (animationOverride && Date.now() < overrideExpiresAt) {
     return animationOverride;
   }
-  return emotionToCodexState(emotion);
+  return emotionToAnimState(emotion);
 }
+
 /**
- * Preload a Codex pet's cached frames into memory.
- * Must be called once per pet species before getCodexFrame().
+ * Preload a pet's cached frames into memory.
+ * Must be called once per pet species before getFrame().
  *
  * @param speciesId - The species identifier (cache key)
  */
-export async function loadCodexPet(speciesId: string): Promise<void> {
+export async function loadPet(speciesId: string): Promise<void> {
   if (frameCache.has(speciesId)) return; // Already loaded
 
   const entry = await loadCache(speciesId);
   if (!entry) {
     throw new Error(
-      `Codex pet "${speciesId}" not imported yet. Use '/pets import <path>' to import its pet.json + spritesheet.webp.`,
+      `Pet "${speciesId}" not imported yet. Use '/pets import <path>' to import its pet.json + spritesheet.webp.`,
     );
   }
   frameCache.set(speciesId, entry);
 }
 
 /**
- * Check if a Codex pet is loaded in memory.
+ * Check if a pet is loaded in memory.
  */
-export function isCodexPetLoaded(speciesId: string): boolean {
+export function isPetLoaded(speciesId: string): boolean {
   return frameCache.has(speciesId);
 }
 
 /**
- * Get a rendered frame for a Codex pet from the in-memory cache.
+ * Get a rendered frame for a pet from the in-memory cache.
  *
- * This is synchronous — the async loadCodexPet() must be called first
+ * This is synchronous — the async loadPet() must be called first
  * (e.g., during session start).
  *
  * Uses ANSI true-color half-block rendering for best visual quality.
- * Falls back to ASCII when true color is not supported.
+ * Falls back to text when true color is not supported.
  *
  * @param speciesId - The species identifier (cache key)
  * @param state - The animation state to render
  * @param frameIndex - Index of the frame (0-3)
  * @returns Array of rendered lines, or empty array if species not loaded
  */
-export function getCodexFrame(
+export function getFrame(
   speciesId: string,
-  state: CodexAnimationState,
+  state: AnimationState,
   frameIndex: number,
 ): string[] {
   const entry = frameCache.get(speciesId);
   if (!entry) return [];
 
-  // Prefer ANSI half-block frames, fallback to ASCII
+  // Prefer ANSI half-block frames, fallback to text
   const useAnsi = supportsTrueColor();
-  const sourceFrames = useAnsi ? entry.frames : entry.asciiFallback;
+  const sourceFrames = useAnsi ? entry.frames : entry.textFallback;
   const stateFrames = sourceFrames[state] ?? sourceFrames['idle'] ?? null;
   if (!stateFrames || stateFrames.length === 0) {
     return [];

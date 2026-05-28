@@ -32,7 +32,7 @@ pi-pets is an **extension** for the [pi coding agent](https://github.com/earendi
 - ✅ **7 emotional states** — Happy, Curious, Excited, Tired, Hungry, Frustrated, Sick — driven by needs and coding events
 - ✅ **3-axis needs system** — hunger, energy, and happiness decay over time; feed and pet your companion to keep it healthy
 - ✅ **Event-driven reactions** — XP rewards for completed turns, tool calls, test passes, and error fixes
-- ✅ **ASCII art animations** — every species has 4-frame idle animations rendered in pure ASCII + Nerd Font
+- ✅ **Sprite-based animations** — imported pets use the same file format as Codex (pet.json + spritesheet.webp), rendered with true-color half-block ANSI art
 - ✅ **Footer + Widget UI** — always-visible status line plus a toggleable widget panel with stats, art, and dialog bubbles
 - ✅ **Global companion** — one pet across all your projects; seed derived from your pi config
 
@@ -222,24 +222,19 @@ pi-pets/
 │   ├── evolution.ts               # Stage/growth logic
 │   ├── commands.ts                # /pets command registration (7 subcommands)
 │   ├── events.ts                  # Lifecycle event binding + UI render loop
+│   ├── renderer/                   # Pet rendering pipeline
+│   │   ├── art-provider.ts        # Frame cache and animation state management
+│   │   ├── cache.ts               # Persistent frame cache (~/.pi/pets/pet-cache/)
+│   │   ├── converter.ts           # Spritesheet.webp → pixel grid conversion
+│   │   ├── importer.ts            # pet.json + spritesheet.webp import workflow
+│   │   └── renderer.ts            # ANSI half-block and text fallback rendering
 │   └── ui/
 │       ├── footer.ts              # Footer status line renderer
-│       ├── widget.ts              # Widget panel (ASCII art + stat bars + bubbles)
+│       ├── widget.ts              # Widget panel (pet art + stat bars + bubbles)
+│       ├── pet-overlay.ts         # Pet overlay display logic
+│       ├── visual-utils.ts        # Visual utility functions
 │       ├── overlay.ts             # Level-up / evolution overlays
-│       ├── bubbles.ts             # 7-emotion dialog bubble pool (35 bubbles)
-│       └── art/                   # ASCII art frame data (12 species × 4 frames)
-│           ├── pyrofox.ts
-│           ├── rustacean.ts
-│           ├── pythonidae.ts
-│           ├── gopher.ts
-│           ├── typewhale.ts
-│           ├── bashbat.ts
-│           ├── kotlincat.ts
-│           ├── javaroo.ts
-│           ├── lisplizard.ts
-│           ├── queryquail.ts
-│           ├── hexhound.ts
-│           └── pixelpanda.ts
+│       └── bubbles.ts             # 7-emotion dialog bubble pool (35 bubbles)
 ├── tsconfig.json
 ├── package.json
 ├── README.md

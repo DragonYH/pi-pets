@@ -10,12 +10,12 @@ import { CONFIG } from '../config.ts';
  *
  * Each line is padded to renderWidth characters and ends with \x1b[0m.
  *
- * @param frame - 26×24 RGBA pixel grid
- * @returns 12 ANSI strings
+ * @param frame - pixel grid
+ * @returns ANSI strings
  */
 export function renderAnsiFrame(frame: PixelFrame): string[] {
-  const renderW = CONFIG.CODEX_RENDER_WIDTH;
-  const renderH = CONFIG.CODEX_RENDER_HEIGHT;
+  const renderW = CONFIG.RENDER_WIDTH;
+  const renderH = CONFIG.RENDER_HEIGHT;
   const outHeight = renderH / 2; // 12 lines for 24 pixels
 
   const lines: string[] = [];
@@ -58,8 +58,69 @@ export function renderAnsiFrame(frame: PixelFrame): string[] {
 
 /**
  * Render all frames for a given state.
- * @returns Frame array, each frame is 12 lines of ANSI text.
+ * @returns Frame array, each frame is lines of ANSI text.
  */
 export function renderAnsiFrames(frames: PixelFrame[]): string[][] {
   return frames.map(renderAnsiFrame);
+}
+
+/**
+ * Text fallback rendering: convert a PixelFrame to plain text characters.
+ *
+ * Algorithm:
+ * 1. For each character position, take two vertical pixels.
+ * 2. Average their brightness (perceived luminance).
+ * 3. Map to 10-level character ramp: ` .:-=+*#%@`
+ *
+ * @param frame - pixel grid
+ * @returns lines of plain text
+ */
+export function renderTextFrame(frame: PixelFrame): string[] {
+  const renderW = CONFIG.RENDER_WIDTH;
+  const renderH = CONFIG.RENDER_HEIGHT;
+  const outHeight = renderH / 2;
+
+  const ramp = ' .:-=+*#%@';
+
+  const lines: string[] = [];
+
+  for (let row = 0; row < outHeight; row++) {
+    const topY = row * 2;
+    const bottomY = row * 2 + 1;
+    let textLine = '';
+
+    for (let x = 0; x < renderW; x++) {
+      const top = frame[topY]![x]!;
+      const bottom = bottomY < renderH ? frame[bottomY]![x]! : [0, 0, 0, 0] as const;
+
+      const [, , , ta] = top;
+      const [, , , ba] = bottom;
+
+      if (ta === 0 && ba === 0) {
+        textLine += ' ';
+        continue;
+      }
+
+      // Perceived luminance weights
+      const topLum = ta === 0 ? 0 : 0.299 * top[0] + 0.587 * top[1] + 0.114 * top[2];
+      const bottomLum = ba === 0 ? 0 : 0.299 * bottom[0] + 0.587 * bottom[1] + 0.114 * bottom[2];
+
+      // Average luminance of the two pixels
+      const avgLum = (topLum + bottomLum) / 2;
+      const index = Math.min(Math.floor((avgLum / 255) * ramp.length), ramp.length - 1);
+
+      textLine += ramp[index] ?? ' ';
+    }
+
+    lines.push(textLine);
+  }
+
+  return lines;
+}
+
+/**
+ * Render all frames for a given state as text fallback.
+ */
+export function renderTextFrames(frames: PixelFrame[]): string[][] {
+  return frames.map(renderTextFrame);
 }

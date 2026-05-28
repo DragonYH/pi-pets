@@ -3,7 +3,7 @@ import type { PetEngine } from './pet_instance.ts';
 import { CONFIG } from './config.ts';
 import { PetOverlayComponent } from './ui/pet-overlay.ts';
 import { buildFooterStatus } from './ui/footer.ts';
-import { loadCodexPet } from './codex/art-provider.ts';
+import { loadPet } from './renderer/art-provider.ts';
 import { stageDisplayName } from './evolution.ts';
 
 export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
@@ -25,9 +25,9 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
       engine.onSessionStart();
       safeUi = ctx.ui;
 
-      // Preload codex pet frames into memory
+      // Preload pet frames into memory
       try {
-        await loadCodexPet(engine.state.bones.species);
+        await loadPet(engine.state.bones.species);
       } catch {
         // Pet not imported yet — overlay shows placeholder
       }

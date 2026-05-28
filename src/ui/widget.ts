@@ -1,6 +1,6 @@
 import type { PetEngine } from '../pet_instance.ts';
 import { stageDisplayName } from '../evolution.ts';
-import { getCodexFrame, getCurrentAnimation } from '../codex/art-provider.ts';
+import { getFrame, getCurrentAnimation } from '../renderer/art-provider.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
 
 
@@ -28,9 +28,9 @@ export function buildWidget(
   // Empty spacer
   lines.push(`│${' '.repeat(I)}│`);
 
-  // Codex art (5 rows from half-block rendering)
-  const codexState = getCurrentAnimation(s.emotion);
-  const art = getCodexFrame(s.bones.species, codexState, animationFrame);
+  // Pet art from half-block rendering
+  const animState = getCurrentAnimation(s.emotion);
+  const art = getFrame(s.bones.species, animState, animationFrame);
   if (art.length > 0) {
     for (const row of art) {
       const clamped = visualClamp(row, I);
