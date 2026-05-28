@@ -70,7 +70,7 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
       const subcommands = ['hatch', 'status', 'pet', 'feed', 'name', 'toggle', 'release'];
       return subcommands
         .filter((c) => c.startsWith(prefix))
-        .map((c) => ({ label: c, insertValue: c }));
+        .map((c) => ({ value: c, label: c, insertValue: c }));
     },
     handler: async (args, ctx) => {
       const parts = args.trim().split(/\s+/);
