@@ -78,8 +78,8 @@ export class PetEngine {
   }
 
   /** Hatch a new pet from a seed. */
-  async hatch(seed: number): Promise<{ name: string; stage: GrowthStage }> {
-    const bones = hatch(seed);
+  async hatch(seed: number, speciesOverride?: string): Promise<{ name: string; stage: GrowthStage }> {
+    const bones = hatch(seed, speciesOverride);
     const naming = generateFallbackName(bones, seed);
 
     this.state = {

@@ -117,3 +117,31 @@ export interface WidgetData {
   lines: string[];
   animationFrame: number;
 }
+
+// ===== Codex Animation =====
+
+export type CodexAnimationState =
+  | 'idle'
+  | 'run'
+  | 'sleep'
+  | 'eat'
+  | 'attack'
+  | 'hurt'
+  | 'jump'
+  | 'play'
+  | 'failed';
+
+/**
+ * Cached rendering of a codex pet's frames.
+ * frames & asciiFallback: keyed by CodexAnimationState, value is frame[][line][]
+ */
+export interface CodexCacheEntry {
+  version: number;
+  speciesId: string;
+  meta: {
+    displayName: string;
+    emoji: string;
+  };
+  frames: Record<string, string[][]>;
+  asciiFallback: Record<string, string[][]>;
+}

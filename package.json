@@ -9,9 +9,11 @@
     ]
   },
   "dependencies": {
+    "sharp": "^0.34.5",
     "typebox": "^1.1.38"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1"
+    "@types/node": "^25.9.1",
+    "@types/sharp": "^0.31.1"
   }
 }

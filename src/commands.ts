@@ -6,6 +6,8 @@ import { getRandomBubble } from './ui/bubbles.ts';
 import { levelUpOverlay, evolutionOverlay } from './ui/overlay.ts';
 import { hashString } from './prng.ts';
 import { xpFromPetCommand, xpFromFeedCommand } from './xp.ts';
+import { importCodexPet } from './codex/importer.ts';
+import { loadCodexPet, setAnimationOverride } from './codex/art-provider.ts';
 
 const WIDGET_KEY = 'pi-pets';
 
@@ -67,7 +69,7 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
   pi.registerCommand('pets', {
     description: '宠物系统 - 查看/饲养你的编码伙伴',
     getArgumentCompletions: (prefix: string) => {
-      const subcommands = ['hatch', 'status', 'pet', 'feed', 'name', 'toggle', 'release'];
+      const subcommands = ['hatch', 'status', 'pet', 'feed', 'name', 'toggle', 'release', 'import'];
       return subcommands
         .filter((c) => c.startsWith(prefix))
         .map((c) => ({ value: c, label: c, insertValue: c }));
@@ -77,6 +79,41 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
       const sub = parts[0]?.toLowerCase() || 'status';
 
       switch (sub) {
+        // ---- import ----
+        case 'import': {
+          const pathArg = parts[1];
+          if (!pathArg) {
+            ctx.ui.notify('请指定宠物目录路径：/pets import <path>', 'warning');
+            return;
+          }
+          try {
+            const result = await importCodexPet(pathArg);
+
+            // Release current pet if any
+            if (engine.hasPet) {
+              await engine.release();
+              stopRenderLoop();
+              ctx.ui.setWidget(WIDGET_KEY, undefined);
+              ctx.ui.setStatus('pet', undefined);
+            }
+
+            // Hatch the imported pet
+            const seed = hashString(`codex-${result.speciesId}-${Date.now()}`);
+            const hatchResult = await engine.hatch(seed, result.speciesId);
+
+            // Preload Codex frames into memory
+            await loadCodexPet(result.speciesId);
+
+            currentBubble = getRandomBubble('excited');
+            startRenderLoop(ctx);
+            updateWidget(ctx);
+            ctx.ui.notify('🐣 导入成功！欢迎 ' + hatchResult.name, 'info');
+          } catch (err) {
+            ctx.ui.notify('导入失败: ' + (err as Error).message, 'error');
+          }
+          return;
+          }
+
         // ---- hatch ----
         case 'hatch': {
           if (engine.hasPet) {
@@ -131,6 +168,7 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
           engine.doPet();
           engine.addXp(xpFromPetCommand());
           currentBubble = '嗯～好舒服～';
+          setAnimationOverride('play', 2000);
           updateWidget(ctx);
           ctx.ui.notify('你摸了摸宠物，它很开心！', 'info');
           break;
@@ -213,7 +251,7 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
         // ---- help ----
         default: {
           ctx.ui.notify(
-            '子命令: hatch [seed], status, pet, feed, name <名字>, toggle, release',
+            '子命令: hatch [seed], status, pet, feed, name <名字>, toggle, release, import <path>',
             'info',
           );
           break;

@@ -60,4 +60,14 @@ export const CONFIG = {
 
   // ---- Pet state schema version ----
   STATE_VERSION: 1 as const,
+
+  // ---- Codex ----
+
+  CODEX_CACHE_DIR: '.pi/pets/codex-cache',
+  CODEX_SPRITESHEET_COLS: 8,
+  CODEX_SPRITESHEET_ROWS: 9,
+  CODEX_FRAME_WIDTH: 192,
+  CODEX_FRAME_HEIGHT: 208,
+  CODEX_RENDER_WIDTH: 24,
+  CODEX_RENDER_HEIGHT: 10,
 } as const;

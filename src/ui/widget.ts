@@ -1,21 +1,14 @@
 import type { PetEngine } from '../pet_instance.ts';
-import type { SpeciesId } from '../types.ts';
-import { STAT_KEYS } from '../types.ts';
 import { stageDisplayName } from '../evolution.ts';
-import { FRAMES as PYROFOX_FRAMES } from './art/pyrofox.ts';
-import { FRAMES as RUSTACEAN_FRAMES } from './art/rustacean.ts';
-import { FRAMES as PYTHONIDAE_FRAMES } from './art/pythonidae.ts';
-import { FRAMES as GOPHER_FRAMES } from './art/gopher.ts';
-import { FRAMES as TYPEWHALE_FRAMES } from './art/typewhale.ts';
-import { FRAMES as BASHBAT_FRAMES } from './art/bashbat.ts';
-import { FRAMES as KOTLINCAT_FRAMES } from './art/kotlincat.ts';
-import { FRAMES as JAVAROO_FRAMES } from './art/javaroo.ts';
-import { FRAMES as LISPLIZARD_FRAMES } from './art/lisplizard.ts';
-import { FRAMES as QUERYQUAIL_FRAMES } from './art/queryquail.ts';
-import { FRAMES as HEXHOUND_FRAMES } from './art/hexhound.ts';
-import { FRAMES as PIXELPANDA_FRAMES } from './art/pixelpanda.ts';
+import { getCodexFrame, getCurrentAnimation } from '../codex/art-provider.ts';
 
+/** Strip ANSI escape sequences to count visible characters only. */
+const ANSI_RE = /\x1b\[[0-9;]*m/g;
+const visualLen = (s: string) => s.replace(ANSI_RE, '').length;
+const visualPadStart = (s: string, w: number, ch = ' ') => { const d = w - visualLen(s); return d > 0 ? ch.repeat(d) + s : s; };
+const visualPadEnd = (s: string, w: number, ch = ' ') => { const d = w - visualLen(s); return d > 0 ? s + ch.repeat(d) : s; };
 
+/**
 
 /**
  * Build widget panel lines for the pet.
@@ -33,56 +26,43 @@ export function buildWidget(
 
   // Top border
   lines.push('┌──────────────────────────┐');
-
-  // ASCII art (if available)
-  const art = getArtLines(s.bones.species, animationFrame);
+  // Codex ASCII art (5 lines, matching original art height)
+  const panelW = 24;
+  const codexState = getCurrentAnimation(s.emotion);
+  const art = getCodexFrame(s.bones.species, codexState, animationFrame);
   if (art.length > 0) {
     for (const row of art) {
-      // Center the art inside the widget
-      const padded = row.padStart(Math.floor((26 + row.length) / 2));
-      lines.push(`│ ${padded.padEnd(24)}│`);
+      // Center the art inside the widget (panelW chars wide)
+      const vw = visualLen(row);
+      const centered = visualPadStart(row, Math.floor((panelW + visualLen(row)) / 2));
+      lines.push(`│ ${visualPadEnd(centered, panelW)}│`);
     }
+  } else {
+    // Fallback: no art loaded
+    lines.push(`│ ${'~'.repeat(panelW)}│`);
   }
 
-  // Info section
+  // Empty separator
+  lines.push(`│ ${''.padEnd(24)}│`);
+
+  // Compact info: species + name
+  const shinyMark = s.bones.isShiny ? '✨ ' : '';
+  const stageLabel = stageDisplayName(s.stage);
   const rarityMap: Record<string, string> = {
     common: '普通', uncommon: '稀有', rare: '精良', epic: '史诗', legendary: '传说',
   };
   const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
-  const shinyMark = s.bones.isShiny ? '✨ ' : '';
-  const stageLabel = stageDisplayName(s.stage);
+  const nameDisplay = s.name.length > 10 ? s.name.slice(0, 9) + '…' : s.name;
 
-  const infoLines = [
-    `  ${shinyMark}${s.bones.species.toUpperCase()}`,
-    `  "${s.name}"`,
-    `  Lv.${s.level} ${stageLabel}`,
-    `  稀有度: ${rarityLabel}${s.bones.isShiny ? ' ✨闪亮' : ''}`,
-    '',
-  ];
+  lines.push(`│ ${shinyMark}${s.bones.species.toUpperCase().padEnd(10)}${nameDisplay.padStart(14)}│`);
+  lines.push(`│  Lv.${s.level} ${stageLabel} ${shinyMark}${rarityLabel.padEnd(4)} ${engine.emotionEmoji.padEnd(2)}${String(s.xp).padStart(5)}XP│`);
 
-  for (const line of infoLines) {
-    lines.push(`│ ${line.padEnd(24)}│`);
-  }
+  // Empty separator
+  lines.push(`│ ${''.padEnd(24)}│`);
 
-  // Stats bars
-  const statNames: Record<string, string> = {
-    debugging: 'DEBUGGING',
-    patience: 'PATIENCE',
-    chaos: 'CHAOS',
-    wisdom: 'WISDOM',
-    snark: 'SNARK',
-  };
-
-  for (const key of STAT_KEYS) {
-    const val = s.bones.baseStats[key];
-    const barLen = Math.round(val / 5); // 0-20 chars
-    const bar = '█'.repeat(Math.max(0, barLen));
-    const empty = '░'.repeat(Math.max(0, 20 - barLen));
-    lines.push(`│ ${statNames[key].padEnd(9)} ${bar}${empty} ${val.toString().padStart(3)}│`);
-  }
-
-  // Bubble
-  lines.push(`│                          │`);
+  // Compact stats: H/E + emotion
+  const happinessLabel = s.bones.isShiny ? 'SHINY' : 'Happy';
+  lines.push(`│ H:${String(s.needs.hunger).padStart(3)} E:${String(s.needs.energy).padStart(3)} ${engine.emotionEmoji} ${happinessLabel.padStart(5)}│`);
   lines.push(`│ 💬 "${lastBubble.slice(0, 18).padEnd(18)}"│`);
 
   // Bottom border
@@ -91,82 +71,3 @@ export function buildWidget(
   return lines;
 }
 
-function getArtLines(species: SpeciesId, frame: number): string[] {
-  let frames: string[][];
-
-  switch (species) {
-    case 'pyrofox':
-      frames = PYROFOX_FRAMES;
-      break;
-    case 'rustacean':
-      frames = RUSTACEAN_FRAMES;
-      break;
-    case 'gopher':
-      frames = GOPHER_FRAMES;
-      break;
-    case 'typewhale':
-      frames = TYPEWHALE_FRAMES;
-      break;
-    case 'bashbat':
-      frames = BASHBAT_FRAMES;
-      break;
-    case 'kotlincat':
-      frames = KOTLINCAT_FRAMES;
-      break;
-    case 'javaroo':
-      frames = JAVAROO_FRAMES;
-      break;
-    case 'lisplizard':
-      frames = LISPLIZARD_FRAMES;
-      break;
-    case 'queryquail':
-      frames = QUERYQUAIL_FRAMES;
-      break;
-    case 'hexhound':
-      frames = HEXHOUND_FRAMES;
-      break;
-    case 'pixelpanda':
-      frames = PIXELPANDA_FRAMES;
-      break;
-    default:
-      frames = getGenericArt();
-      break;
-  }
-
-  if (!frames || frames.length === 0) return [];
-  const safeFrame = frame % frames.length;
-  return frames[safeFrame] ?? [];
-}
-
-function getGenericArt(): string[][] {
-  return [
-    [
-      '  ( o o )  ',
-      '  (  ~  )  ',
-      '  (_____)  ',
-      '           ',
-      '           ',
-    ],
-    [
-      '  ( - - )  ',
-      '  (  ~  )  ',
-      '  (_____)  ',
-      '           ',
-      '           ',
-    ],
-    [
-      '  ( o o )  ',
-      '  (  >  )  ',
-      '  (_____)  ',
-      '           ',
-      '           ',
-    ],
-    [
-      '  ( ^ ^ )  ',
-      '  (  ~  )  ',
-      '  (_____)  ',
-      '           ',
-      '           ',
-    ],
-  ];
-}

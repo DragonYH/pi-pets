@@ -21,11 +21,30 @@ function rollRarity(roll: number): RarityTier {
  * Hatch a pet skeleton deterministically from a seed number.
  * Seed comes from hashing the user's pi config.
  */
-export function hatch(seed: number): PetBones {
+export function hatch(seed: number, speciesOverride?: string): PetBones {
   const prng = createPrng(seed);
 
   // 1. Pick species
-  const speciesDef = prng.pick(SPECIES);
+  let speciesDef: SpeciesDef;
+  if (speciesOverride) {
+    const found = SPECIES.find((s) => s.id === speciesOverride);
+    if (found) {
+      speciesDef = found;
+    } else {
+      // Imported Codex pet — create a default species definition
+      speciesDef = {
+        id: speciesOverride,
+        name: speciesOverride,
+        nameEn: speciesOverride,
+        emoji: '🐾',
+        description: 'Imported Codex pet',
+        domain: 'codex',
+        baseStats: { debugging: 50, patience: 50, chaos: 50, wisdom: 50, snark: 50 },
+      };
+    }
+  } else {
+    speciesDef = prng.pick(SPECIES);
+  }
 
   // 2. Rarity roll
   const rarity = rollRarity(prng.next() * 100);
