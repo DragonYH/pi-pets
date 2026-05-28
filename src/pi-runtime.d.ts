@@ -8,7 +8,7 @@ declare module '@earendil-works/pi-coding-agent' {
     registerTool(definition: Record<string, unknown>): void;
     registerCommand(name: string, options: {
       description: string;
-      getArgumentCompletions?: (prefix: string) => Array<{ label: string; insertValue: string }>;
+      getArgumentCompletions?: (prefix: string) => Array<{ value: string; label: string; insertValue: string; description?: string }>;
       handler: (args: string, ctx: ExtensionContext) => void | Promise<void>;
     }): void;
     appendEntry(type: string, data: unknown): void;

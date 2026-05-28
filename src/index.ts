@@ -6,9 +6,9 @@ import { registerCommands } from './commands.ts';
 export default function (pi: ExtensionAPI) {
   const engine = new PetEngine();
 
-  // Register events
-  bindEvents(pi, engine);
+  // Register events (returns toggle controls)
+  const overlayControls = bindEvents(pi, engine);
 
   // Register commands
-  registerCommands(pi, engine);
+  registerCommands(pi, engine, overlayControls);
 }

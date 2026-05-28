@@ -7,18 +7,35 @@ import { xpFromPetCommand, xpFromFeedCommand } from './xp.ts';
 import { importCodexPet } from './codex/importer.ts';
 import { loadCodexPet, setAnimationOverride } from './codex/art-provider.ts';
 
-export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
-  let widgetVisible = true;
+export function registerCommands(
+  pi: ExtensionAPI,
+  engine: PetEngine,
+  overlayControls?: {
+    showOverlay: () => void;
+    hideOverlay: () => void;
+    toggleOverlay: () => boolean;
+    isOverlayVisible: () => boolean;
+  },
+) {
 
   // ===== Commands =====
 
   pi.registerCommand('pets', {
     description: '宠物系统 - 查看/饲养你的编码伙伴',
     getArgumentCompletions: (prefix: string) => {
-      const subcommands = ['hatch', 'status', 'pet', 'feed', 'name', 'toggle', 'release', 'import'];
+      const subcommands: Array<{ value: string; label: string; description: string }> = [
+        { value: 'hatch',   label: 'hatch',   description: '孵化一只新宠物' },
+        { value: 'status',  label: 'status',  description: '显示宠物面板' },
+        { value: 'pet',     label: 'pet',     description: '抚摸宠物，它会很开心' },
+        { value: 'feed',    label: 'feed',    description: '喂食宠物' },
+        { value: 'name',    label: 'name',    description: '给宠物改名' },
+        { value: 'toggle',  label: 'toggle',  description: '显示/隐藏宠物面板' },
+        { value: 'release', label: 'release', description: '放生当前宠物（不可撤销）' },
+        { value: 'import',  label: 'import',  description: '导入 Codex 精灵图宠物' },
+      ];
       return subcommands
-        .filter((c) => c.startsWith(prefix))
-        .map((c) => ({ value: c, label: c, insertValue: c }));
+        .filter((c) => c.value.startsWith(prefix))
+        .map((c) => ({ value: c.value, label: c.label, insertValue: c.value, description: c.description }));
     },
     handler: async (args, ctx) => {
       const parts = args.trim().split(/\s+/);
@@ -93,7 +110,7 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
             ctx.ui.notify('还没有宠物！使用 /pets hatch 孵化一只', 'warning');
             return;
           }
-          widgetVisible = true;
+          overlayControls?.showOverlay();
           ctx.ui.notify('宠物面板已显示', 'info');
           break;
         }
@@ -151,14 +168,10 @@ export function registerCommands(pi: ExtensionAPI, engine: PetEngine) {
           break;
         }
 
-        // ---- toggle ----
+        // ---- toggle (hide/show overlay) ----
         case 'toggle': {
-          widgetVisible = !widgetVisible;
-          if (widgetVisible) {
-            ctx.ui.notify('宠物面板已显示', 'info');
-          } else {
-            ctx.ui.notify('宠物面板已隐藏', 'info');
-          }
+          const isVisible = overlayControls?.toggleOverlay() ?? false;
+          ctx.ui.notify(isVisible ? '🐾 宠物面板已显示' : '🙈 宠物面板已隐藏', 'info');
           break;
         }
 

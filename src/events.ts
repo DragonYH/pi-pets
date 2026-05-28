@@ -14,6 +14,7 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
   let safeUi: ExtensionContext['ui'] | null = null;
 
   // ---- Overlay lifecycle ----
+  let overlayVisible = true;
   let overlayHandle: any = null;
   let overlayComponent: PetOverlayComponent | null = null;
 
@@ -112,4 +113,30 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
     engine.onToolExecuted(success, isError);
     ctx.ui.setStatus('pet', buildFooterStatus(engine));
   });
+
+  // ---- Expose overlay controls for commands ----
+  return {
+    showOverlay: () => {
+      if (overlayHandle) {
+        overlayHandle.setHidden(false);
+        overlayVisible = true;
+      }
+    },
+    hideOverlay: () => {
+      if (overlayHandle) {
+        overlayHandle.setHidden(true);
+        overlayVisible = false;
+      }
+    },
+    toggleOverlay: () => {
+      if (overlayHandle) {
+        const wasHidden = overlayHandle.isHidden();
+        overlayHandle.setHidden(!wasHidden);
+        overlayVisible = !overlayHandle.isHidden(); // 取 setHidden 之后的真实状态
+        return overlayVisible;
+      }
+      return false;
+    },
+    isOverlayVisible: () => overlayVisible,
+  };
 }
