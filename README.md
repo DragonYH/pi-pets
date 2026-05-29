@@ -76,14 +76,20 @@ Once installed, pi-pets **reacts automatically** to your coding sessions:
 
 | Command | Description |
 |---------|-------------|
+| `/pets` | Show pet status summary (bare, no subcommand) |
 | `/pets hatch [seed]` | Hatch a new pet (optional seed string for determinism) |
 | `/pets status` | Show the pet widget panel with art, stats, and bubble |
-| `/pets pet` | Pet your companion (+happiness, +XP) |
-| `/pets feed` | Feed your companion (+hunger, +XP) |
-| `/pets name <name>` | Rename your pet (1-32 chars, control chars filtered) |
+| `/pets info` | Show detailed pet archive (species, rarity, stats, personality, skills) |
+| `/pets pet` | Pet your companion (+happiness, +XP with values) |
+| `/pets feed` | Feed your companion (+hunger, +XP with values) |
+| `/pets rename <name>` | Rename your pet (1-32 chars, control chars filtered) |
 | `/pets toggle` | Show/hide the pet widget |
 | `/pets release` | Release your pet permanently (confirmation required) |
-
+| `/pets import <path>` | Import a sprite-based pet from a directory |
+| `/pets list` | List imported pets |
+| `/pets clean [species]` | Clear image cache for a species (default: current pet) |
+| `/pets help` | Show all commands and descriptions |
+| `/pets name <name>` | Alias for rename (preserved for compatibility) |
 ```bash
 # Hatch with a custom seed for a specific pet
 /pets hatch my-secret-seed
@@ -220,7 +226,7 @@ pi-pets/
 │   ├── needs.ts                   # 3-axis need decay + recovery
 │   ├── xp.ts                      # XP calculation + level curve
 │   ├── evolution.ts               # Stage/growth logic
-│   ├── commands.ts                # /pets command registration (7 subcommands)
+│   ├── commands.ts                # /pets command registration (multiple subcommands)
 │   ├── events.ts                  # Lifecycle event binding + UI render loop
 │   ├── renderer/                   # Pet rendering pipeline
 │   │   ├── art-provider.ts        # Frame cache and animation state management
