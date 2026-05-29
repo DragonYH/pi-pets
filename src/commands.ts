@@ -5,7 +5,8 @@ import { getRandomBubble } from './ui/bubbles.ts';
 import { hashString } from './prng.ts';
 import { xpFromPetCommand, xpFromFeedCommand } from './xp.ts';
 import { importPet } from './renderer/importer.ts';
-import { loadPet, setAnimationOverride } from './renderer/art-provider.ts';
+import { loadPet, setAnimationOverride, unloadPet, reloadPet } from './renderer/art-provider.ts';
+import { invalidateCache, listCachedSpecies, hasCache } from './renderer/cache.ts';
 
 export function registerCommands(
   pi: ExtensionAPI,
@@ -26,12 +27,15 @@ export function registerCommands(
       const subcommands: Array<{ value: string; label: string; description: string }> = [
         { value: 'hatch',   label: 'hatch',   description: '孵化一只新宠物' },
         { value: 'status',  label: 'status',  description: '显示宠物面板' },
+        { value: 'list',    label: 'list',    description: '列出已导入的宠物' },
         { value: 'pet',     label: 'pet',     description: '抚摸宠物，它会很开心' },
         { value: 'feed',    label: 'feed',    description: '喂食宠物' },
         { value: 'name',    label: 'name',    description: '给宠物改名' },
         { value: 'toggle',  label: 'toggle',  description: '显示/隐藏宠物面板' },
         { value: 'release', label: 'release', description: '放生当前宠物（不可撤销）' },
         { value: 'import',  label: 'import',  description: '导入精灵图宠物' },
+        { value: 'delete',  label: 'delete',  description: '删除当前宠物（不可撤销）' },
+        { value: 'clean',   label: 'clean',   description: '清除指定宠物的图像缓存' },
       ];
       return subcommands
         .filter((c) => c.value.startsWith(prefix))
@@ -52,6 +56,15 @@ export function registerCommands(
           try {
             const result = await importPet(pathArg);
 
+            // Same species — refresh cache only, keep state
+            if (engine.hasPet && engine.state!.bones.species === result.speciesId) {
+              await reloadPet(result.speciesId);
+              engine.setBubble(getRandomBubble('excited'));
+              ctx.ui.setStatus('pet', buildFooterStatus(engine));
+              ctx.ui.notify(`💄 ${result.displayName} 的外观已更新！`, 'info');
+              return;
+            }
+
             // Release current pet if any
             if (engine.hasPet) {
               await engine.release();
@@ -70,6 +83,22 @@ export function registerCommands(
             ctx.ui.notify('🐣 导入成功！欢迎 ' + engine.petName, 'info');
           } catch (err) {
             ctx.ui.notify('导入失败: ' + (err as Error).message, 'error');
+          }
+          return;
+        }
+
+        // ---- list ----
+        case 'list': {
+          try {
+            const cached = await listCachedSpecies();
+            if (cached.length === 0) {
+              ctx.ui.notify('还没有导入过宠物。使用 /pets import <path> 导入一只', 'info');
+              return;
+            }
+            const lines = cached.map((c) => `${c.emoji} ${c.displayName} (${c.speciesId})`);
+            ctx.ui.notify('已导入的宠物:\n' + lines.join('\n'), 'info');
+          } catch (err) {
+            ctx.ui.notify('列出宠物失败: ' + (err as Error).message, 'error');
           }
           return;
         }
@@ -196,10 +225,70 @@ export function registerCommands(
           break;
         }
 
+        // ---- delete ----
+        case 'delete': {
+          if (!engine.hasPet) {
+            ctx.ui.notify('还没有宠物！', 'warning');
+            return;
+          }
+          const confirmed = await ctx.ui.confirm(
+            '删除宠物',
+            `确定要删除 "${engine.petName}" 及其所有数据吗？此操作不可撤销！`,
+          );
+          if (!confirmed) {
+            ctx.ui.notify('删除已取消', 'info');
+            return;
+          }
+          const speciesId = engine.state!.bones.species;
+          const name = engine.petName;
+          await engine.release();
+          await invalidateCache(speciesId);
+          unloadPet(speciesId);
+          ctx.ui.setStatus('pet', undefined);
+          ctx.ui.notify(`"${name}" 及其数据已删除。`, 'info');
+          return;
+        }
+
+        // ---- clean ----
+        case 'clean': {
+          const speciesArg = parts[1];
+          if (!speciesArg) {
+            ctx.ui.notify('请指定要清理的物种 ID：/pets clean <speciesId>', 'warning');
+            return;
+          }
+
+          // Check cache exists before attempting clean
+          if (!hasCache(speciesArg)) {
+            ctx.ui.notify(`未找到物种 "${speciesArg}" 的图像缓存`, 'warning');
+            return;
+          }
+
+          // If cleaning current pet's species, warn
+          if (engine.hasPet && engine.state!.bones.species === speciesArg) {
+            const confirmed = await ctx.ui.confirm(
+              '清理缓存',
+              `"${speciesArg}" 是当前宠物的物种。清理后图像将消失，但宠物数据会保留。确定？`,
+            );
+            if (!confirmed) {
+              ctx.ui.notify('清理已取消', 'info');
+              return;
+            }
+          }
+
+          try {
+            await invalidateCache(speciesArg);
+            unloadPet(speciesArg);
+            ctx.ui.notify(`✨ "${speciesArg}" 的图像缓存已清除`, 'info');
+          } catch (err) {
+            ctx.ui.notify('清理失败: ' + (err as Error).message, 'error');
+          }
+          return;
+        }
+
         // ---- help ----
         default: {
           ctx.ui.notify(
-            '子命令: hatch [seed], status, pet, feed, name <名字>, toggle, release, import <path>',
+            '子命令: hatch [seed], status, list, pet, feed, name <名字>, toggle, release, import <path>, delete, clean <speciesId>',
             'info',
           );
           break;
