@@ -77,6 +77,60 @@ export function visualPadEnd(s: string, w: number, ch = ' '): string {
 }
 
 /**
+ * Wrap `text` across multiple lines, each fitting within `maxWidth` visual columns.
+ * Respects ANSI escape sequences and ensures the final line has a reset trailer.
+ * Continuation indentation is not added — callers format prefixes independently.
+ *
+ * NOTE: returns an empty array `[]` when maxWidth is too small to hold any character
+ * (e.g. maxWidth===1 and the first character is a wide emoji needing 2 columns),
+ * or when maxWidth <= 0. Callers should handle `[]` gracefully (e.g. show placeholder).
+ */
+export function visualWrap(text: string, maxWidth: number): string[] {
+  if (maxWidth <= 0) return [];
+  if (text.length > 0 && maxWidth >= 1) {
+    // Check if the first character is too wide to fit
+    const firstCp = text.codePointAt(0)!;
+    if (isWideCode(firstCp) && maxWidth < 2) {
+      return ['\u2026']; // ellipsis placeholder
+    }
+  }
+  const lines: string[] = [];
+  let pos = 0;
+
+  while (pos < text.length) {
+    let visual = 0;
+    let i = pos;
+
+    while (i < text.length && visual < maxWidth) {
+      if (text[i] === '\x1b' && text[i + 1] === '[') {
+        // Skip ANSI escape sequence verbatim
+        i += 2;
+        while (i < text.length && text[i] !== 'm') i++;
+        if (i < text.length) i++;
+        continue;
+      }
+      const cp = text.codePointAt(i)!;
+      const w = isWideCode(cp) ? 2 : 1;
+      const unitLen = cp > 0xFFFF ? 2 : 1;
+      if (visual + w > maxWidth) break;
+      visual += w;
+      i += unitLen;
+    }
+
+    const chunk = text.slice(pos, i);
+    if (chunk.length === 0) break; // safety: no progress
+    lines.push(chunk);
+    pos = i;
+  }
+
+  // Ensure the last line carries a reset to prevent color leakage
+  if (lines.length > 0 && !lines[lines.length - 1].endsWith('\x1b[0m')) {
+    lines[lines.length - 1] += '\x1b[0m';
+  }
+
+  return lines;
+}
+/**
  * Truncate `s` to at most `maxLen` visual columns, preserving ANSI
  * escape sequences and appending a reset (\x1b[0m) to prevent color
  * leakage past the truncation point.

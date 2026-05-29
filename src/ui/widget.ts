@@ -1,7 +1,7 @@
 import type { PetEngine } from '../pet_instance.ts';
 import { stageDisplayName } from '../evolution.ts';
 import { getFrame, getCurrentAnimation } from '../renderer/art-provider.ts';
-import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
+import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.ts';
 
 
 /** Widget constants — every line is exactly W chars. */
@@ -70,19 +70,23 @@ export function buildWidget(
   // Separator
   lines.push(`│${'─'.repeat(I)}│`);
 
-  // Bubble line
-  // CJK-aware bubble: slice & pad by visual width
-  let bubbleText = '';
-  for (const ch of lastBubble) {
-    if (visualLen(bubbleText + ch) > I - 3) break;
-    bubbleText += ch;
+  // Bubble: up to 2 lines with visual wrap
+  const bubbleLines = visualWrap(lastBubble, I - 3).slice(0, 2);
+  if (bubbleLines.length > 0) {
+    lines.push(`│💬 ${visualPadEnd(bubbleLines[0], I - 3)}│`);
+    if (bubbleLines.length > 1) {
+      // Continuation — indent 2 spaces
+      lines.push(`│  ${visualPadEnd(bubbleLines[1], I - 2)}│`);
+    }
+  } else {
+    lines.push(`│💬 ${visualPadEnd('', I - 3)}│`);
   }
-  lines.push(`│💬 ${visualPadEnd(bubbleText, I - 3)}│`);
 
-  // Stats line: H/E + emotion
-  const happinessLabel = s.bones.isShiny ? 'SHINY' : 'Happy';
-  const stats = `H:${String(s.needs.hunger).padStart(3)} E:${String(s.needs.energy).padStart(3)} ${engine.emotionEmoji} ${happinessLabel}`;
-  // CJK-aware: happinessLabel may be non-ASCII, emotionEmoji is 2-col
+  // Stats: scannable emoji-label format
+  const h = Math.round(s.needs.hunger);
+  const e = Math.round(s.needs.energy);
+  const hap = Math.round(s.needs.happiness);
+  lines.push(`│${visualPadEnd(visualClamp(`🍖${h} ⚡${e} 😊${hap}`, I), I)}│`);
   lines.push(`└${'─'.repeat(I)}┘`);
 
   return lines;

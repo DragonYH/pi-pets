@@ -7,7 +7,7 @@ import { getFrame, getCurrentAnimation, getFrameCount } from '../renderer/art-pr
 import { getRandomBubble } from './bubbles.ts';
 import type { EmotionState } from '../types.ts';
 import { stageDisplayName } from '../evolution.ts';
-import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
+import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.ts';
 
 import { CONFIG } from '../config.ts';
 
@@ -93,21 +93,26 @@ export class PetOverlayComponent implements Component {
     // Separator
     lines.push(`│${'─'.repeat(innerW)}│`);
 
-    // Bubble line
+    // Bubble: up to 2 lines with visual wrap
     const bubble = this.resolveBubble(s.emotion);
-    let bubbleText = '';
-    for (const ch of bubble) {
-      if (visualLen(bubbleText + ch) > innerW - 3) break;
-      bubbleText += ch;
+    const wrapped = visualWrap(bubble, innerW - 3);
+    const bubbleLines = wrapped.slice(0, 2);
+    if (bubbleLines.length > 0) {
+      lines.push(`│💬 ${visualPadEnd(bubbleLines[0], innerW - 3)}│`);
+      if (bubbleLines.length > 1) {
+        // Continuation — indent 2 spaces; show '…' if more overflow
+        const overflow = wrapped.length > 2 ? '\u2026' : '';
+        lines.push(`│  ${visualPadEnd(bubbleLines[1] + overflow, innerW - 2)}│`);
+      }
+    } else {
+      lines.push(`│💬 ${visualPadEnd('', innerW - 3)}│`);
     }
-    lines.push(`│💬 ${visualPadEnd(bubbleText, innerW - 3)}│`);
 
-    // Stats line
+    // Stats: scannable emoji-label format
     const h = Math.round(s.needs.hunger);
     const e = Math.round(s.needs.energy);
     const hap = Math.round(s.needs.happiness);
-    const statsStr = `H:${String(h).padStart(3)} E:${String(e).padStart(3)} ${this.engine.emotionEmoji} ${String(hap).padStart(3)}`;
-    lines.push(`│${visualPadEnd(visualClamp(statsStr, innerW), innerW)}│`);
+    lines.push(`│${visualPadEnd(visualClamp(`🍖${h} ⚡${e} 😊${hap}`, innerW), innerW)}│`);
 
     // └──────────┘
     lines.push(`╰${'─'.repeat(innerW)}╯`);
@@ -133,21 +138,25 @@ export class PetOverlayComponent implements Component {
     const stageLabel = stageDisplayName(s.stage);
     lines.push(`│${visualPadEnd(`Lv.${s.level} ${stageLabel}`, innerW)}│`);
 
-    // Bubble line
+    // Bubble: up to 2 lines with visual wrap
     const bubble = this.resolveBubble(s.emotion);
-    let bubbleText = '';
-    for (const ch of bubble) {
-      if (visualLen(bubbleText + ch) > innerW - 3) break;
-      bubbleText += ch;
+    const bubbleLines = visualWrap(bubble, innerW - 3);
+    if (bubbleLines.length > 0) {
+      lines.push(`│💬 ${visualPadEnd(bubbleLines[0], innerW - 3)}│`);
+      if (bubbleLines.length > 1) {
+        // Continuation — indent 2 spaces; show '…' if more overflow
+        const overflow = bubbleLines.length > 2 ? '\u2026' : '';
+        lines.push(`│  ${visualPadEnd(bubbleLines[1] + overflow, innerW - 2)}│`);
+      }
+    } else {
+      lines.push(`│💬 ${visualPadEnd('', innerW - 3)}│`);
     }
-    lines.push(`│💬 ${visualPadEnd(bubbleText, innerW - 3)}│`);
 
-    // Stats line
+    // Stats: scannable emoji-label format (matching full render)
     const h = Math.round(s.needs.hunger);
     const e = Math.round(s.needs.energy);
     const hap = Math.round(s.needs.happiness);
-    const statsStr = `H:${String(h).padStart(3)} E:${String(e).padStart(3)} ${this.engine.emotionEmoji} ${String(hap).padStart(3)}`;
-    lines.push(`│${visualPadEnd(visualClamp(statsStr, innerW), innerW)}│`);
+    lines.push(`│${visualPadEnd(visualClamp(`🍖${h} ⚡${e} 😊${hap}`, innerW), innerW)}│`);
 
     // └──────────┘
     lines.push(`╰${'─'.repeat(innerW)}╯`);
