@@ -8,6 +8,29 @@ import type { AnimationState, CacheEntry } from '../types.ts';
 const frameCache = new Map<string, CacheEntry>();
 
 /**
+ * Check if a rendered string frame (ANSI or text fallback) is effectively blank.
+ * A frame is blank when all lines contain only whitespace — meaning the source
+ * PixelFrame was fully transparent.
+ */
+function isBlankStringFrame(lines: string[]): boolean {
+  return lines.every((line) => line.trim().length === 0);
+}
+
+/**
+ * Filter out blank string frames from a Record<string, string[][]>.
+ * Returns a new Record with the same keys; keys with all frames blank become empty arrays.
+ */
+function filterBlankStringFrames(
+  source: Record<string, string[][]>,
+): Record<string, string[][]> {
+  const result: Record<string, string[][]> = {};
+  for (const [state, frameList] of Object.entries(source)) {
+    result[state] = frameList.filter((frame) => !isBlankStringFrame(frame));
+  }
+  return result;
+}
+
+/**
  * Check if the terminal supports true color (24-bit).
  */
 function supportsTrueColor(): boolean {
@@ -106,6 +129,12 @@ export async function loadPet(speciesId: string): Promise<void> {
       `Pet "${speciesId}" not imported yet. Use '/pets import <path>' to import its pet.json + spritesheet.webp.`,
     );
   }
+
+  // Filter out blank frames from the cache entry
+  // (blank = all-transparent frames that snuck in before spritesheet filtering was added)
+  entry.frames = filterBlankStringFrames(entry.frames);
+  entry.textFallback = filterBlankStringFrames(entry.textFallback);
+
   frameCache.set(speciesId, entry);
 }
 
@@ -114,6 +143,39 @@ export async function loadPet(speciesId: string): Promise<void> {
  */
 export function isPetLoaded(speciesId: string): boolean {
   return frameCache.has(speciesId);
+}
+
+ /**
+ * Remove a pet's frames from the in-memory cache.
+ * The pet will no longer render until loadPet() is called again.
+ */
+export function unloadPet(speciesId: string): void {
+  frameCache.delete(speciesId);
+}
+
+ /**
+ * Reload a pet's frames from disk cache into memory.
+ * Use after reimporting the same species to refresh the in-memory frames.
+ */
+  export async function reloadPet(speciesId: string): Promise<void> {
+  unloadPet(speciesId);
+  await loadPet(speciesId);
+}
+
+/**
+ * Get the number of frames available for a given species + animation state.
+ * Returns 0 if the species is not loaded or the state has no frames.
+ */
+export function getFrameCount(speciesId: string, state: AnimationState): number {
+  const entry = frameCache.get(speciesId);
+  if (!entry) return 0;
+
+  const useAnsi = supportsTrueColor();
+  const sourceFrames = useAnsi ? entry.frames : entry.textFallback;
+  const stateFrames = sourceFrames[state] ?? sourceFrames['idle'] ?? null;
+  if (!stateFrames) return 0;
+
+  return stateFrames.length;
 }
 
 /**
@@ -127,7 +189,7 @@ export function isPetLoaded(speciesId: string): boolean {
  *
  * @param speciesId - The species identifier (cache key)
  * @param state - The animation state to render
- * @param frameIndex - Index of the frame (0-3)
+ * @param frameIndex - Index of the frame (cycled modulo actual frame count)
  * @returns Array of rendered lines, or empty array if species not loaded
  */
 export function getFrame(

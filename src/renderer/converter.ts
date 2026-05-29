@@ -1,7 +1,9 @@
 import sharp from 'sharp';
-import { CONFIG } from '../config.ts';
-import type { AnimationState } from '../types.ts';
 
+import { CONFIG } from '../config.ts';
+
+import type { AnimationState } from '../types.ts';
+const { ALPHA_OPAQUE_THRESHOLD, MIN_OPAQUE_RATIO } = CONFIG;
 /**
  * RGBA pixel: [r, g, b, a]
  */
@@ -13,7 +15,8 @@ export type RGBAPixel = [number, number, number, number];
 export type PixelFrame = RGBAPixel[][];
 
 /**
- * Result of converting a spritesheet: a map of animation state → 4 frames.
+ * Result of converting a spritesheet: a map of animation state → frames
+ * (blank/transparent frames are automatically filtered out).
  */
 export type ConversionResult = Record<string, PixelFrame[]>;
 
@@ -31,14 +34,43 @@ const SPRITESHEET_STATES: AnimationState[] = [
 ];
 
 /**
+ * Check whether a pixel frame is effectively blank (fully or nearly transparent).
+ * A frame is considered blank when fewer than MIN_OPAQUE_RATIO of its pixels
+ * have alpha > ALPHA_OPAQUE_THRESHOLD.
+ */
+function isFrameBlank(frame: PixelFrame): boolean {
+  const renderH = frame.length;
+  if (renderH === 0) return true;
+  const renderW = frame[0]!.length;
+  if (renderW === 0) return true;
+
+  const totalPixels = renderH * renderW;
+  const minOpaque = Math.max(1, Math.ceil(totalPixels * MIN_OPAQUE_RATIO));
+  let opaqueCount = 0;
+
+  for (let y = 0; y < renderH; y++) {
+    const row = frame[y]!;
+    for (let x = 0; x < renderW; x++) {
+      if (row[x]![3]! > ALPHA_OPAQUE_THRESHOLD) {
+        opaqueCount++;
+        if (opaqueCount >= minOpaque) return false; // early exit
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
  * Load a spritesheet.webp and convert each frame to a pixel grid.
  *
  * Spritesheet layout: 8 columns × 9 rows, each frame 192×208px.
- * We take even columns (0,2,4,6) → 4 frames per state.
+ * All columns are read in order; each column is one frame.
+ * Fully transparent / blank frames are automatically filtered out.
  * Each frame is downsampled to FRAME_WIDTH × FRAME_HEIGHT.
  *
  * @param webpPath - Path to the spritesheet.webp file
- * @returns A map of animation state name → 4 PixelFrame arrays
+ * @returns A map of animation state name → PixelFrame arrays (blank frames removed)
  */
 export async function convertSpritesheet(webpPath: string): Promise<ConversionResult> {
   const image = sharp(webpPath);
@@ -69,14 +101,14 @@ export async function convertSpritesheet(webpPath: string): Promise<ConversionRe
 
     const frames: PixelFrame[] = [];
 
-    // Take even columns: 0, 2, 4, 6
-    for (let col = 0; col < cols; col += 2) {
+    // Process every column in order as a frame
+    for (let col = 0; col < cols; col++) {
       const left = col * frameW;
       const top = row * frameH;
 
       const { data } = await sharp(webpPath)
         .extract({ left, top, width: frameW, height: frameH })
-        .resize(renderW, renderH, { fit: 'fill' })
+        .resize(renderW, renderH, { fit: 'fill', kernel: 'nearest' })
         .ensureAlpha()
         .raw()
         .toBuffer({ resolveWithObject: true });
@@ -92,7 +124,10 @@ export async function convertSpritesheet(webpPath: string): Promise<ConversionRe
         grid.push(rowPixels);
       }
 
-      frames.push(grid);
+      // Skip blank (fully transparent) frames
+      if (!isFrameBlank(grid)) {
+        frames.push(grid);
+      }
     }
 
     result[stateName] = frames;

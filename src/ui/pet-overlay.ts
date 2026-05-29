@@ -3,7 +3,7 @@ interface Component { render(width: number): string[]; invalidate(): void; }
 // eslint-disable-next-line
 type TUI = any;
 import type { PetEngine } from '../pet_instance.ts';
-import { getFrame, getCurrentAnimation } from '../renderer/art-provider.ts';
+import { getFrame, getCurrentAnimation, getFrameCount } from '../renderer/art-provider.ts';
 import { getRandomBubble } from './bubbles.ts';
 import { stageDisplayName } from '../evolution.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
@@ -31,7 +31,14 @@ export class PetOverlayComponent implements Component {
 
   private startAnimation() {
     this.animTimer = setInterval(() => {
-      this.animationFrame = (this.animationFrame + 1) % 4;
+      // Determine current frame count from the engine state
+      let frameCount = 1; // fallback default (avoid modulo 0)
+      if (this.engine.state) {
+        const animState = getCurrentAnimation(this.engine.state.emotion);
+        const count = getFrameCount(this.engine.state.bones.species, animState);
+        if (count > 0) frameCount = count;
+      }
+      this.animationFrame = (this.animationFrame + 1) % frameCount;
       this.tui.requestRender();
     }, 500);
   }

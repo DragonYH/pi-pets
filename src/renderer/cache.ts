@@ -1,9 +1,11 @@
-import { readFile, writeFile, mkdir, unlink } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, unlink, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { CONFIG } from '../config.ts';
 import type { CacheEntry } from '../types.ts';
+
+export const CACHE_VERSION = 3;
 
 /**
  * Get the absolute path to the pet cache directory.
@@ -40,8 +42,8 @@ export async function loadCache(speciesId: string): Promise<CacheEntry | null> {
   try {
     const raw = await readFile(path, 'utf-8');
     const parsed = JSON.parse(raw) as CacheEntry;
-    // Basic validation
-    if (parsed && parsed.speciesId === speciesId && parsed.frames) {
+    // Version + basic validation
+    if (parsed && parsed.speciesId === speciesId && parsed.version === CACHE_VERSION && parsed.frames) {
       return parsed;
     }
     return null;
@@ -80,4 +82,40 @@ export async function invalidateCache(speciesId: string): Promise<void> {
   } catch {
     // File may not exist
   }
+}
+
+/**
+ * List all cached pet species in the cache directory.
+ * Returns an empty array if the directory doesn't exist or contains no valid entries.
+ */
+export async function listCachedSpecies(): Promise<
+  Array<{ speciesId: string; displayName: string; emoji: string }>
+> {
+  const dir = cacheDir();
+  let files: string[];
+  try {
+    files = await readdir(dir);
+  } catch {
+    return [];
+  }
+
+  const results: Array<{ speciesId: string; displayName: string; emoji: string }> = [];
+  for (const file of files) {
+    if (!file.endsWith('.json')) continue;
+    try {
+      const raw = await readFile(join(dir, file), 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.speciesId && parsed.meta) {
+        results.push({
+          speciesId: parsed.speciesId,
+          displayName: parsed.meta.displayName,
+          emoji: parsed.meta.emoji ?? '🐾',
+        });
+      }
+    } catch {
+      // Skip corrupted / unreadable entries
+    }
+  }
+
+  return results;
 }

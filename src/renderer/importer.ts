@@ -3,10 +3,10 @@ import { join } from 'node:path';
 import { convertSpritesheet, type ConversionResult } from './converter.ts';
 import { renderAnsiFrames } from './renderer.ts';
 import { renderTextFrames } from './renderer.ts';
-import { saveCache } from './cache.ts';
+import { saveCache, CACHE_VERSION } from './cache.ts';
 import type { CacheEntry, AnimationState } from '../types.ts';
 
-const CACHE_VERSION = 1;
+// CACHE_VERSION defined in cache.ts, imported above
 
 /**
  * Result of importing a pet.

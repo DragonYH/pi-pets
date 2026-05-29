@@ -54,9 +54,7 @@ export const CONFIG = {
   TICK_INTERVAL: 60_000,
   RENDER_INTERVAL: 500,
   BUBBLE_INTERVAL: 20_000,
-  ANIM_FRAMES: 4,
 
-  // ---- Random offset range for stats ----
   STAT_RANDOM_RANGE: 20,
 
   // ---- Persistence ----
@@ -74,4 +72,6 @@ export const CONFIG = {
   FRAME_HEIGHT: 208,
   RENDER_WIDTH: 34,
   RENDER_HEIGHT: 32,
+  ALPHA_OPAQUE_THRESHOLD: 10,
+  MIN_OPAQUE_RATIO: 0.005,
 } as const;
