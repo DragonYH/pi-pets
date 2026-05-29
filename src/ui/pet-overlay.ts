@@ -5,6 +5,7 @@ type TUI = any;
 import type { PetEngine } from '../pet_instance.ts';
 import { getFrame, getCurrentAnimation, getFrameCount } from '../renderer/art-provider.ts';
 import { getRandomBubble } from './bubbles.ts';
+import type { EmotionState } from '../types.ts';
 import { stageDisplayName } from '../evolution.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp } from './visual-utils.ts';
 
@@ -21,6 +22,8 @@ export class PetOverlayComponent implements Component {
   private engine: PetEngine;
   private tui: TUI;
   private animTimer: ReturnType<typeof setInterval> | null = null;
+  private cachedBubble: string = '';
+  private lastBubbleEmotion: EmotionState | null = null;
   animationFrame = 0;
 
   constructor(engine: PetEngine, tui: TUI) {
@@ -40,7 +43,7 @@ export class PetOverlayComponent implements Component {
       }
       this.animationFrame = (this.animationFrame + 1) % frameCount;
       this.tui.requestRender();
-    }, 500);
+    }, 200);
   }
 
   // NO handleInput — this panel does NOT capture keyboard input
@@ -91,7 +94,7 @@ export class PetOverlayComponent implements Component {
     lines.push(`│${'─'.repeat(innerW)}│`);
 
     // Bubble line
-    const bubble = this.engine.currentBubble || getRandomBubble(s.emotion);
+    const bubble = this.resolveBubble(s.emotion);
     let bubbleText = '';
     for (const ch of bubble) {
       if (visualLen(bubbleText + ch) > innerW - 3) break;
@@ -131,7 +134,7 @@ export class PetOverlayComponent implements Component {
     lines.push(`│${visualPadEnd(`Lv.${s.level} ${stageLabel}`, innerW)}│`);
 
     // Bubble line
-    const bubble = this.engine.currentBubble || getRandomBubble(s.emotion);
+    const bubble = this.resolveBubble(s.emotion);
     let bubbleText = '';
     for (const ch of bubble) {
       if (visualLen(bubbleText + ch) > innerW - 3) break;
@@ -149,6 +152,22 @@ export class PetOverlayComponent implements Component {
     // └──────────┘
     lines.push(`╰${'─'.repeat(innerW)}╯`);
     return lines;
+  }
+
+  private resolveBubble(emotion: EmotionState): string {
+    if (this.engine.currentBubble) {
+      // Engine explicitly set a bubble — use and cache it
+      this.cachedBubble = this.engine.currentBubble;
+      this.lastBubbleEmotion = emotion;
+      return this.cachedBubble;
+    }
+    if (emotion !== this.lastBubbleEmotion) {
+      // Emotion changed — pick a new random bubble
+      this.cachedBubble = getRandomBubble(emotion);
+      this.lastBubbleEmotion = emotion;
+    }
+    // Reuse cached bubble (stable across render calls)
+    return this.cachedBubble;
   }
 
   invalidate(): void {}

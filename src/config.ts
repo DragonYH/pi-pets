@@ -53,7 +53,6 @@ export const CONFIG = {
   // ---- Timers ----
   TICK_INTERVAL: 60_000,
   RENDER_INTERVAL: 500,
-  BUBBLE_INTERVAL: 20_000,
 
   STAT_RANDOM_RANGE: 20,
 
