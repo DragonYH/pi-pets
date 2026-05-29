@@ -205,9 +205,9 @@ Once installed, pi-pets **reacts automatically** to your coding sessions:
 
 | Need | Decay Rate | Recovery |
 |------|-----------|----------|
-| Hunger | 0.5/min | `/pets feed` (+40) |
-| Energy | 0.3/min (active) / 0.1/min (idle) | 30+ min idle (+20) |
-| Happiness | 0.2/min | `/pets pet` (+15), coding success (+5) |
+|| Hunger | 0.025/min | `/pets feed` (+40) |
+|| Energy | 0.015/min (active) / 0.1/min (idle) | 30+ min idle (+20) |
+|| Happiness | 0.010/min | `/pets pet` (+15), coding success (+5) |
 
 ## 🏗️ Project Structure
 

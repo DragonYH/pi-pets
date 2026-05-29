@@ -1,9 +1,9 @@
 export const CONFIG = {
   // ---- Needs ----
   NEEDS_DECAY_RATES: {
-    hunger: 0.5, // per minute
-    energy: 0.3,
-    happiness: 0.2,
+    hunger: 0.025, // per minute
+    energy: 0.015,
+    happiness: 0.010,
   } as const,
 
   NEEDS_RECOVERY: {
