@@ -69,6 +69,8 @@ export function emotionToAnimState(emotion: string): AnimationState {
       return 'eat';
     case 'frustrated':
       return 'attack';
+    case 'working':
+      return 'run';
     case 'sick':
       return 'hurt';
     default:

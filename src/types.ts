@@ -25,6 +25,7 @@ export type EmotionState =
   | 'tired'
   | 'hungry'
   | 'frustrated'
+  | 'working';
   | 'sick';
 
 export type Gender = 'male' | 'female';

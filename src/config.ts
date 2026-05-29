@@ -56,6 +56,10 @@ export const CONFIG = {
 
   STAT_RANDOM_RANGE: 20,
 
+  // ---- Working Detection ----
+  WORKING_WINDOW_MS: 300_000,
+
+
   // ---- Persistence ----
   PERSISTENCE_PATH: '.pi/pets/state.json',
 

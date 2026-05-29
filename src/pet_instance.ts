@@ -6,7 +6,7 @@ import { generateFallbackName } from './name_generator.ts';
 import { getLevel, xpFromTurnComplete, xpFromToolSuccess, xpFromTestsAllPass, xpFromErrorFixed } from './xp.ts';
 import { mulberry32 } from './prng.ts';
 import { getStage, stageDisplayName, isStageTransition } from './evolution.ts';
-import { tickNeeds, feed, petPet, applyIdleRecovery, emotionFromNeeds } from './needs.ts';
+import { tickNeeds, feed, petPet, applyIdleRecovery, resolveEmotion } from './needs.ts';
 import { Persistence } from './persistence.ts';
 
 /**
@@ -25,9 +25,22 @@ export class PetEngine {
   currentBubble: string = '';
   animationFrame: number = 0;
 
+  /** Timestamp of most recent user activity (tool exec / turn end). */
+  private lastActivityTimestamp: number = Date.now();
+
   constructor(baseDir?: string) {
     this.persistence = new Persistence(baseDir);
     this.xpRng = mulberry32(Date.now());
+  }
+
+  /** Record recent activity for working-state detection. */
+  private recordActivity(): void {
+    this.lastActivityTimestamp = Date.now();
+  }
+
+  /** Check if there was recent activity within the working window. */
+  isRecentlyWorking(): boolean {
+    return Date.now() - this.lastActivityTimestamp < CONFIG.WORKING_WINDOW_MS;
   }
 
   get hasPet(): boolean {
@@ -65,6 +78,7 @@ export class PetEngine {
         tickNeeds(this.state.needs, elapsed);
       }
       this.state.lastTickTimestamp = Date.now();
+      this.recordActivity();
       return true;
     }
     return false;
@@ -103,6 +117,7 @@ export class PetEngine {
       equippedSkills: [],
     };
     this.initXpRng();
+    this.recordActivity();
     await this.save();
     return { name: this.state.name, stage: this.state.stage };
   }
@@ -125,7 +140,7 @@ export class PetEngine {
     tickNeeds(this.state.needs, elapsed);
     this.state.lastTickTimestamp = now;
 
-    const newEmotion = emotionFromNeeds(this.state.needs);
+    const newEmotion = resolveEmotion(this.state.needs, this.isRecentlyWorking());
     const changed = newEmotion !== this.state.emotion;
     this.state.emotion = newEmotion;
     return changed ? newEmotion : null;
@@ -135,7 +150,7 @@ export class PetEngine {
   doFeed(): boolean {
     if (!this.state) return false;
     feed(this.state.needs);
-    this.state.emotion = emotionFromNeeds(this.state.needs);
+    this.state.emotion = resolveEmotion(this.state.needs, this.isRecentlyWorking());
     return true;
   }
 
@@ -143,7 +158,7 @@ export class PetEngine {
   doPet(): boolean {
     if (!this.state) return false;
     petPet(this.state.needs);
-    this.state.emotion = emotionFromNeeds(this.state.needs);
+    this.state.emotion = resolveEmotion(this.state.needs, this.isRecentlyWorking());
     return true;
   }
 
@@ -168,6 +183,7 @@ export class PetEngine {
   /** Called after each turn completes. */
   onTurnComplete(): { xpGained: number; leveledUp: boolean; newStage: GrowthStage | null } {
     const amount = xpFromTurnComplete(this.xpRng);
+    this.recordActivity();
     const result = this.addXp(amount);
     return { xpGained: amount, ...result };
   }
@@ -175,6 +191,8 @@ export class PetEngine {
   /** Called after a tool execution completes. */
   onToolExecuted(success: boolean, isError: boolean): void {
     if (!this.state) return;
+
+    this.recordActivity();
 
     if (success && !isError) {
       this.addXp(xpFromToolSuccess(this.xpRng));
@@ -221,6 +239,7 @@ export class PetEngine {
       hungry: '🍽️',
       frustrated: '😤',
       sick: '🤒',
+      working: '💻',
     };
     return map[this.state.emotion];
   }
