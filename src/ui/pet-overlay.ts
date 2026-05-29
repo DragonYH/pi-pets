@@ -7,6 +7,7 @@ import { getFrame, getCurrentAnimation, getFrameCount } from '../renderer/art-pr
 import { getRandomBubble } from './bubbles.ts';
 import type { EmotionState } from '../types.ts';
 import { stageDisplayName } from '../evolution.ts';
+import { SPECIES_MAP } from '../species.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.ts';
 
 import { CONFIG } from '../config.ts';
@@ -79,12 +80,12 @@ export class PetOverlayComponent implements Component {
       lines.push(`│${' '.repeat(left)}${placeholder}${' '.repeat(innerW - left - vLen)}│`);
     }
 
-    // Info line 1: species (uppercase) + name right-aligned
-    const shinyMark = s.bones.isShiny ? '✨ ' : '';
-    const speciesLabel = `${shinyMark}${s.bones.species.toUpperCase()}`;
-    const nameDisplay = visualLen(s.name) > 14 ? visualClamp(s.name, 13) + '\u2026' : s.name;
-    const speciesW = Math.min(10, innerW);
-    lines.push(`│${visualPadEnd(speciesLabel, speciesW)}${visualPadStart(nameDisplay, innerW - speciesW)}│`);
+    // Info line 1: name(species)
+    const shinyMark = s.bones.isShiny ? '✨' : '';
+    const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
+    const nameLine = `${shinyMark}${s.name}(${speciesName})`;
+    const safeNameLine = visualLen(nameLine) > innerW ? visualClamp(nameLine, innerW - 1) + '…' : nameLine;
+    lines.push(`│${visualPadEnd(safeNameLine, innerW)}│`);
 
     // Info line 2: Lv, stage
     const stageLabel = stageDisplayName(s.stage);
@@ -127,12 +128,12 @@ export class PetOverlayComponent implements Component {
     // ┌──────────┐
     lines.push(`╭${'─'.repeat(innerW)}╮`);
 
-    // Info line 1: species (uppercase) + name right-aligned
-    const shinyMark = s.bones.isShiny ? '✨ ' : '';
-    const speciesLabel = `${shinyMark}${s.bones.species.toUpperCase()}`;
-    const nameDisplay = visualLen(s.name) > 14 ? visualClamp(s.name, 13) + '…' : s.name;
-    const speciesW = Math.min(10, innerW);
-    lines.push(`│${visualPadEnd(speciesLabel, speciesW)}${visualPadStart(nameDisplay, innerW - speciesW)}│`);
+    // Info line 1: name(species)
+    const shinyMark = s.bones.isShiny ? '✨' : '';
+    const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
+    const nameLine = `${shinyMark}${s.name}(${speciesName})`;
+    const safeNameLine = visualLen(nameLine) > innerW ? visualClamp(nameLine, innerW - 1) + '…' : nameLine;
+    lines.push(`│${visualPadEnd(safeNameLine, innerW)}│`);
 
     // Info line 2: Lv, stage
     const stageLabel = stageDisplayName(s.stage);

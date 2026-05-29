@@ -1,5 +1,6 @@
 import type { PetEngine } from '../pet_instance.ts';
 import { stageDisplayName } from '../evolution.ts';
+import { SPECIES_MAP } from '../species.ts';
 import { getFrame, getCurrentAnimation } from '../renderer/art-provider.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.ts';
 
@@ -48,12 +49,12 @@ export function buildWidget(
   // Empty spacer
   lines.push(`│${' '.repeat(I)}│`);
 
-  // Info line 1: species (uppercase) + name right-aligned
-  const shinyMark = s.bones.isShiny ? '✨ ' : '';
-  const speciesLabel = `${shinyMark}${s.bones.species.toUpperCase()}`;
-  const nameDisplay = visualLen(s.name) > 14 ? visualClamp(s.name, 13) + '\u2026' : s.name;
-  const speciesW = Math.min(10, I);
-  lines.push(`│${visualPadEnd(speciesLabel, speciesW)}${visualPadStart(nameDisplay, I - speciesW)}│`);
+  // Info line 1: name(species)
+  const shinyMark = s.bones.isShiny ? '✨' : '';
+  const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
+  const nameLine = `${shinyMark}${s.name}(${speciesName})`;
+  const safeNameLine = visualLen(nameLine) > I ? visualClamp(nameLine, I - 1) + '…' : nameLine;
+  lines.push(`│${visualPadEnd(safeNameLine, I)}│`);
 
   // Info line 2: Lv, stage, rarity, emotion, XP
   const stageLabel = stageDisplayName(s.stage);
