@@ -49,23 +49,28 @@ export function buildWidget(
   // Empty spacer
   lines.push(`│${' '.repeat(I)}│`);
 
-  // Info line 1: name(species)
+  // Info line 1: name(species) left, Lv.x stageLabel right
   const shinyMark = s.bones.isShiny ? '✨' : '';
   const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
-  const nameLine = `${shinyMark}${s.name}(${speciesName})`;
-  const safeNameLine = visualLen(nameLine) > I ? visualClamp(nameLine, I - 1) + '…' : nameLine;
-  lines.push(`│${visualPadEnd(safeNameLine, I)}│`);
-
-  // Info line 2: Lv, stage, rarity, emotion, XP
   const stageLabel = stageDisplayName(s.stage);
+  const leftStr = `${shinyMark}${s.name}(${speciesName})`;
+  const rightStr = `Lv.${s.level} ${stageLabel}`;
+  const rightLen = visualLen(rightStr);
+  const maxLeftW = I - rightLen;
+  if (visualLen(leftStr) <= maxLeftW) {
+    lines.push(`│${visualPadEnd(leftStr, maxLeftW)}${rightStr}│`);
+  } else {
+    const safeLeft = visualClamp(leftStr, Math.max(0, maxLeftW - 1)) + '…';
+    lines.push(`│${visualPadEnd(safeLeft, maxLeftW)}${rightStr}│`);
+  }
+
+  // Info line 2: rarity, emotion, XP
   const rarityMap: Record<string, string> = {
     common: '普通', uncommon: '稀有', rare: '精良', epic: '史诗', legendary: '传说',
   };
   const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
-  const levelStr = `Lv.${s.level}`;
   const xpStr = `${s.xp}XP`;
-  const line2 = `${levelStr} ${stageLabel} ${shinyMark}${rarityLabel} ${engine.emotionEmoji} ${xpStr}`;
-  // CJK-aware: rarity/stage names are Chinese, shiny/emotion are emoji
+  const line2 = `${rarityLabel} ${engine.emotionEmoji} ${xpStr}`;
   lines.push(`│${visualPadEnd(line2, I)}│`);
 
   // Separator

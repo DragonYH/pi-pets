@@ -80,16 +80,20 @@ export class PetOverlayComponent implements Component {
       lines.push(`│${' '.repeat(left)}${placeholder}${' '.repeat(innerW - left - vLen)}│`);
     }
 
-    // Info line 1: name(species)
+    // Info line: name(species) left, Lv.x stageLabel right
     const shinyMark = s.bones.isShiny ? '✨' : '';
     const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
-    const nameLine = `${shinyMark}${s.name}(${speciesName})`;
-    const safeNameLine = visualLen(nameLine) > innerW ? visualClamp(nameLine, innerW - 1) + '…' : nameLine;
-    lines.push(`│${visualPadEnd(safeNameLine, innerW)}│`);
-
-    // Info line 2: Lv, stage
     const stageLabel = stageDisplayName(s.stage);
-    lines.push(`│${visualPadEnd(`Lv.${s.level} ${stageLabel}`, innerW)}│`);
+    const leftStr = `${shinyMark}${s.name}(${speciesName})`;
+    const rightStr = `Lv.${s.level} ${stageLabel}`;
+    const rightLen = visualLen(rightStr);
+    const maxLeftW = innerW - rightLen;
+    if (visualLen(leftStr) <= maxLeftW) {
+      lines.push(`│${visualPadEnd(leftStr, maxLeftW)}${rightStr}│`);
+    } else {
+      const safeLeft = visualClamp(leftStr, Math.max(0, maxLeftW - 1)) + '…';
+      lines.push(`│${visualPadEnd(safeLeft, maxLeftW)}${rightStr}│`);
+    }
 
     // Separator
     lines.push(`│${'─'.repeat(innerW)}│`);
@@ -128,16 +132,20 @@ export class PetOverlayComponent implements Component {
     // ┌──────────┐
     lines.push(`╭${'─'.repeat(innerW)}╮`);
 
-    // Info line 1: name(species)
+    // Info line: name(species) left, Lv.x stageLabel right
     const shinyMark = s.bones.isShiny ? '✨' : '';
     const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
-    const nameLine = `${shinyMark}${s.name}(${speciesName})`;
-    const safeNameLine = visualLen(nameLine) > innerW ? visualClamp(nameLine, innerW - 1) + '…' : nameLine;
-    lines.push(`│${visualPadEnd(safeNameLine, innerW)}│`);
-
-    // Info line 2: Lv, stage
     const stageLabel = stageDisplayName(s.stage);
-    lines.push(`│${visualPadEnd(`Lv.${s.level} ${stageLabel}`, innerW)}│`);
+    const leftStr = `${shinyMark}${s.name}(${speciesName})`;
+    const rightStr = `Lv.${s.level} ${stageLabel}`;
+    const rightLen = visualLen(rightStr);
+    const maxLeftW = innerW - rightLen;
+    if (visualLen(leftStr) <= maxLeftW) {
+      lines.push(`│${visualPadEnd(leftStr, maxLeftW)}${rightStr}│`);
+    } else {
+      const safeLeft = visualClamp(leftStr, Math.max(0, maxLeftW - 1)) + '…';
+      lines.push(`│${visualPadEnd(safeLeft, maxLeftW)}${rightStr}│`);
+    }
 
     // Bubble: up to 2 lines with visual wrap
     const bubble = this.resolveBubble(s.emotion);
