@@ -67,7 +67,7 @@ jobs:
 
       - name: Publish to npm
         if: steps.npm.outputs.exists == 'false'
-        run: npm publish --provenance
+        run: npm publish --provenance --access public
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

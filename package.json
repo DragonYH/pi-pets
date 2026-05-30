@@ -1,5 +1,5 @@
 {
-  "name": "pi-pets",
+  "name": "@rokiy/pi-pets",
   "version": "1.0.0",
   "type": "module",
   "description": "A virtual pet system for pi - hatch, raise, and bond with coding companions",

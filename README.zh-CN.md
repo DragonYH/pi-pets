@@ -44,7 +44,7 @@ pi-pets 是 [pi 编码助手](https://github.com/earendil-works/pi-coding-agent)
 ### 方式一：npm 安装（推荐）
 
 ```bash
-pi install npm:pi-pets
+pi install npm:@rokiy/pi-pets
 ```
 
 ### 方式二：GitHub 安装

@@ -44,7 +44,7 @@ pi-pets is an **extension** for the [pi coding agent](https://github.com/earendi
 ### Option 1: Install from npm (Recommended)
 
 ```bash
-pi install npm:pi-pets
+pi install npm:@rokiy/pi-pets
 ```
 
 ### Option 2: Install from GitHub
@@ -91,7 +91,7 @@ Once installed, pi-pets **reacts automatically** to your coding sessions:
 | `/pets import <path>` | Import a sprite-based pet from a directory |
 | `/pets clean [species]` | Clear image cache for a species (default: current pet) |
 | `/pets delete <species>` | Delete species cache file (only if no pet uses this species) |
-| `/pets lang <zh-CN\|en>` | Switch display language |
+| `/pets lang <zh-CN|en>` | Switch display language |
 | `/pets help` | Show all commands and descriptions |
 
 ```bash
