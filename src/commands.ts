@@ -28,16 +28,16 @@ export function registerCommands(
     getArgumentCompletions: (prefix: string) => {
       const subcommands: Array<{ value: string; label: string; description: string }> = [
         { value: 'hatch',   label: 'hatch',   description: '\u968F\u673A\u5B75\u5316\u4E00\u53EA\u65B0\u5BA0\u7269' },
-        { value: 'status',  label: 'status',  description: '\u663E\u793A\u5BA0\u7269\u9762\u677F' },
         { value: 'info',    label: 'info',    description: '\u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848' },
 { value: 'list',    label: 'list',    description: '列出已孵化宠物并交互切换' },
         { value: 'pet',     label: 'pet',     description: '\u629A\u6478\u5BA0\u7269\uFF0C\u5B83\u4F1A\u5F88\u5F00\u5FC3' },
         { value: 'feed',    label: 'feed',    description: '\u5582\u98DF\u5BA0\u7269' },
         { value: 'rename',  label: 'rename',  description: '\u7ED9\u5BA0\u7269\u6539\u540D' },
-        { value: 'toggle',  label: 'toggle',  description: '\u663E\u793A/\u9690\u85CF\u5BA0\u7269\u9762\u677F' },
+        { value: 'ui',      label: 'ui',      description: '\u663E\u793A/\u9690\u85CF\u5BA0\u7269\u9762\u677F' },
         { value: 'release', label: 'release', description: '\u653E\u751F\u5F53\u524D\u5BA0\u7269\uFF08\u4E0D\u53EF\u64A4\u9500\uFF09' },
         { value: 'import',  label: 'import',  description: '\u5BFC\u5165\u7CBE\u7075\u56FE\u5BA0\u7269' },
         { value: 'clean',   label: 'clean',   description: '\u6E05\u9664\u6307\u5B9A\u5BA0\u7269\u7684\u56FE\u50CF\u7F13\u5B58' },
+        { value: 'delete',  label: 'delete',  description: '删除指定物种文件（仅当没有宠物使用该物种）' },
         { value: 'help',    label: 'help',    description: '\u663E\u793A\u5168\u90E8\u547D\u4EE4\u5E2E\u52A9' },
       ];
       return subcommands
@@ -51,22 +51,21 @@ export function registerCommands(
       switch (sub) {
         // ---- bare /pets (no subcommand) ----
         case '': {
-          if (!engine.hasPet) {
-            ctx.ui.notify(
-              '\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01\u4F7F\u7528 /pets hatch \u968F\u673A\u5B75\u5316\u4E00\u53EA\uFF0C\u6216 /pets import <path> \u5BFC\u5165\u7269\u79CD\u3002\u8F93\u5165 /pets help \u67E5\u770B\u5168\u90E8\u547D\u4EE4\u3002',
-              'info',
-            );
-            return;
-          }
-          const s = engine.state!;
-          const sp = getSpecies(s.bones.species);
-          const shinyMark = s.bones.isShiny ? ' \u2728' : '';
-          const genderMark = s.bones.gender === 'male' ? '\u2642' : '\u2640';
           ctx.ui.notify(
-            `"${s.name}" \u2014 ${sp.emoji} ${sp.name} (${engine.rarityLabel}${shinyMark} ${genderMark})\n` +
-            `Lv.${s.level} ${engine.stageName} \u2B50${s.xp}XP ${engine.emotionEmoji}\n` +
-            `H:${s.needs.hunger}/100  E:${s.needs.energy}/100  \u{1F60A}:${s.needs.happiness}/100\n` +
-            `\u8F93\u5165 /pets info \u67E5\u770B\u8BE6\u7EC6\u6863\u6848\uFF0C/pets help \u67E5\u770B\u5168\u90E8\u547D\u4EE4`,
+            '/pets 宠物系统命令\n' +
+            '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n' +
+            'hatch [seed]     从已导入物种中随机孵化新宠物\n' +
+            'info             查看宠物详细档案\n' +
+            'list             列出已孵化宠物并交互切换\n' +
+            'pet              抚摸宠物（+快乐 +XP）\n' +
+            'feed             喂食宠物（+饥饿 +XP）\n' +
+            'rename <name>    给宠物改名\n' +
+            'ui               显示/\u9690藏宠物面板\n' +
+            'release          放生当前宠物（不可撤销）\n' +
+            'import <path>    导入精灵图宠物（仅添加物种，不孵化）\n' +
+            'clean [species]  清理图像缓存（无参时清理当前宠物）\n' +
+            'delete <species>  删除指定物种文件（无宠物使用时）\n' +
+            'help             显示本帮助',
             'info',
           );
           break;
@@ -237,16 +236,6 @@ export function registerCommands(
           break;
         }
 
-        // ---- status ----
-        case 'status': {
-          if (!engine.hasPet) {
-            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01\u4F7F\u7528 /pets hatch \u968F\u673A\u5B75\u5316\u4E00\u53EA', 'warning');
-            return;
-          }
-          overlayControls?.showOverlay();
-          ctx.ui.notify('\u5BA0\u7269\u9762\u677F\u5DF2\u663E\u793A', 'info');
-          break;
-        }
 
         // ---- info ----
         case 'info': {
@@ -358,8 +347,8 @@ export function registerCommands(
           break;
         }
 
-        // ---- toggle (hide/show overlay) ----
-        case 'toggle': {
+        // ---- ui (hide/show overlay) ----
+        case 'ui': {
           const isVisible = overlayControls?.toggleOverlay() ?? false;
           ctx.ui.notify(isVisible ? '\u{1F43E} \u5BA0\u7269\u9762\u677F\u5DF2\u663E\u793A' : '\u{1F648} \u5BA0\u7269\u9762\u677F\u5DF2\u9690\u85CF', 'info');
           break;
@@ -388,27 +377,37 @@ export function registerCommands(
           break;
         }
 
-        // ---- delete (alias: kept for backward compat - strong delete) ----
+        // ---- delete <speciesId> (delete species file, only if no pet uses it) ----
         case 'delete': {
-          if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
+          const speciesId = parts[1];
+          if (!speciesId) {
+            ctx.ui.notify('请指定物种 ID：/pets delete <speciesId>', 'warning');
             return;
           }
+
+          if (!hasCache(speciesId)) {
+            ctx.ui.notify(`未找到物种 "${speciesId}" 的缓存文件。`, 'warning');
+            return;
+          }
+
+          const existing = await engine.getExistingPetForSpecies(speciesId);
+          if (existing) {
+            ctx.ui.notify(`无法删除物种 "${speciesId}"：当前有宠物正在使用该物种（${existing.bones.name}）。请先放生该宠物。`, 'warning');
+            return;
+          }
+
           const confirmed = await ctx.ui.confirm(
-            '\u5220\u9664\u5BA0\u7269',
-            `\u786E\u5B9A\u8981\u5220\u9664 "${engine.petName}" \u53CA\u5176\u6240\u6709\u6570\u636E\u5417\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\uFF01`,
+            '删除物种',
+            `确定要删除物种 "${speciesId}" 的缓存文件吗？此操作不可撤销！`,
           );
           if (!confirmed) {
-            ctx.ui.notify('\u5220\u9664\u5DF2\u53D6\u6D88', 'info');
+            ctx.ui.notify('删除已取消', 'info');
             return;
           }
-          const speciesId = engine.state!.bones.species;
-          const name = engine.petName;
-          await engine.release();
+
           await invalidateCache(speciesId);
           unloadPet(speciesId);
-          ctx.ui.setStatus('pet', undefined);
-          ctx.ui.notify(`"${name}" \u53CA\u5176\u6570\u636E\u5DF2\u5220\u9664\u3002`, 'info');
+          ctx.ui.notify(`物种 "${speciesId}" 的缓存已删除。`, 'info');
           return;
         }
 
@@ -463,20 +462,20 @@ export function registerCommands(
         // ---- help ----
         case 'help': {
           ctx.ui.notify(
-            '/pets \u5BA0\u7269\u7CFB\u7EDF\u547D\u4EE4\n' +
-            '\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\n' +
-            'hatch [seed]     \u4ECE\u5DF2\u5BFC\u5165\u7269\u79CD\u4E2D\u968F\u673A\u5B75\u5316\u65B0\u5BA0\u7269\n' +
-            'status           \u663E\u793A\u5BA0\u7269\u9762\u677F\uFF08\u5168\u5C4F widget\uFF09\n' +
-            'info             \u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848\n' +
+            '/pets 宠物系统命令\n' +
+            '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n' +
+            'hatch [seed]     从已导入物种中随机孵化新宠物\n' +
+            'info             查看宠物详细档案\n' +
             'list             列出已孵化宠物并交互切换\n' +
-            'pet              \u629A\u6478\u5BA0\u7269\uFF08+\u5FEB\u4E50 +XP\uFF09\n' +
-            'feed             \u5582\u98DF\u5BA0\u7269\uFF08+\u9965\u997F +XP\uFF09\n' +
-            'rename <name>    \u7ED9\u5BA0\u7269\u6539\u540D\n' +
-            'toggle           \u663E\u793A/\u9690\u85CF\u5BA0\u7269\u9762\u677F\n' +
-            'release          \u653E\u751F\u5F53\u524D\u5BA0\u7269\uFF08\u4E0D\u53EF\u64A4\u9500\uFF09\n' +
-            'import <path>    \u5BFC\u5165\u7CBE\u7075\u56FE\u5BA0\u7269\uFF08\u4EC5\u6DFB\u52A0\u7269\u79CD\uFF0C\u4E0D\u5B75\u5316\uFF09\n' +
-            'clean [species]  \u6E05\u7406\u56FE\u50CF\u7F13\u5B58\uFF08\u65E0\u53C2\u65F6\u6E05\u7406\u5F53\u524D\u5BA0\u7269\uFF09\n' +
-            'help             \u663E\u793A\u672C\u5E2E\u52A9',
+            'pet              抚摸宠物（+快乐 +XP）\n' +
+            'feed             喂食宠物（+饥饿 +XP）\n' +
+            'rename <name>    给宠物改名\n' +
+            'ui               显示/\u9690藏宠物面板\n' +
+            'release          放生当前宠物（不可撤销）\n' +
+            'import <path>    导入精灵图宠物（仅添加物种，不孵化）\n' +
+            'clean [species]  清理图像缓存（无参时清理当前宠物）\n' +
+            'delete <species>  删除指定物种文件（无宠物使用时）\n' +
+            'help             显示本帮助',
             'info',
           );
           break;

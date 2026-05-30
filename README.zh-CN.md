@@ -76,18 +76,18 @@ pi install ./
 
 | 命令 | 说明 |
 |---------|-------------|
-| `/pets` | 显示宠物状态摘要（裸命令，无子命令） |
+| `/pets` | 显示全部命令及说明 |
 | `/pets hatch [seed]` | 孵化新宠物（可选 seed 字符串） |
-| `/pets status` | 显示宠物面板（精灵图 + 属性 + 对话气泡） |
 | `/pets info` | 显示宠物详细档案（物种、稀有度、属性、个性、技能） |
 | `/pets pet` | 抚摸宠物（+快乐，+XP，显示具体数值） |
 | `/pets feed` | 喂食宠物（+饥饿，+XP，显示具体数值） |
 | `/pets rename <名字>` | 给宠物改名（1-32 字符） |
-| `/pets toggle` | 显示/隐藏宠物面板 |
+| `/pets ui` | 显示/隐藏宠物面板 |
 | `/pets release` | 永久放生（需确认） |
 | `/pets import <path>` | 从目录导入精灵图宠物 |
 | `/pets list` | 列出已导入的宠物 |
 | `/pets clean [species]` | 清除指定物种图像缓存（默认当前宠物） |
+| `/pets delete <species>` | 删除指定物种文件（仅当没有宠物使用该物种） |
 | `/pets help` | 显示全部命令及说明 |
 | `/pets name <名字>` | rename 的别名（兼容保留） |
 ```bash
@@ -95,7 +95,10 @@ pi install ./
 /pets hatch my-secret-seed
 
 # 查看宠物
-/pets status
+/pets info
+
+# 删除物种文件（仅当无宠物使用时）
+/pets delete meow
 
 # 快速互动
 /pets pet
