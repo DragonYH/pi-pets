@@ -30,7 +30,7 @@ export function registerCommands(
         { value: 'hatch',   label: 'hatch',   description: '\u968F\u673A\u5B75\u5316\u4E00\u53EA\u65B0\u5BA0\u7269' },
         { value: 'status',  label: 'status',  description: '\u663E\u793A\u5BA0\u7269\u9762\u677F' },
         { value: 'info',    label: 'info',    description: '\u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848' },
-        { value: 'list',    label: 'list',    description: '\u5217\u51FA\u5DF2\u5BFC\u5165\u7684\u7269\u79CD\u5E76\u9009\u62E9\u5BA0\u7269' },
+        { value: 'list',    label: 'list',    description: \u5217\u51FA\u5DF2\u5B75\u5316\u7684\u5BA0\u7269\u5E76\u5207\u6362 },
         { value: 'pet',     label: 'pet',     description: '\u629A\u6478\u5BA0\u7269\uFF0C\u5B83\u4F1A\u5F88\u5F00\u5FC3' },
         { value: 'feed',    label: 'feed',    description: '\u5582\u98DF\u5BA0\u7269' },
         { value: 'rename',  label: 'rename',  description: '\u7ED9\u5BA0\u7269\u6539\u540D' },
@@ -98,7 +98,7 @@ export function registerCommands(
             ctx.ui.setStatus('pet', buildFooterStatus(engine));
             ctx.ui.notify(
               `\u{1F4E6} \u5DF2\u5BFC\u5165 "${result.displayName}" (${result.speciesId})\n` +
-              `\u4F7F\u7528 /pets list \u9009\u62E9\u5B75\u5316\u8BE5\u7269\u79CD`,
+              `\u4F7F\u7528 /pets hatch \u968F\u673A\u5B75\u5316\u8BE5\u7269\u79CD`
               'info',
             );
           } catch (err) {
@@ -107,186 +107,69 @@ export function registerCommands(
           return;
         }
 
-        // ---- list (interactive selection) ----
+        // ---- list (native select, only hatched pets) ----
         case 'list': {
           try {
-            const cached = await listCachedSpecies();
-            if (cached.length === 0) {
+            const allPets = await engine.listAllPets();
+            if (allPets.length === 0) {
               ctx.ui.notify(
-                '\u8FD8\u6CA1\u6709\u5BFC\u5165\u8FC7\u5BA0\u7269\u3002\u4F7F\u7528 /pets import <path> \u5BFC\u5165\u4E00\u4E2A\u5BA0\u7269\u7269\u79CD\u3002',
+                '\u8FD8\u6CA1\u6709\u5B75\u5316\u7684\u5BA0\u7269\u3002\u8BF7\u4F7F\u7528 /pets hatch \u5B75\u5316\u4E00\u53EA\u65B0\u5BA0\u7269\u3002',
                 'info',
               );
               return;
             }
 
-            // Check which species already have a pet file on disk
-            const petForSpecies: Record<string, PetState | null> = {};
-            const currentSpeciesId = engine.hasPet ? engine.state!.bones.species : null;
+            // Build clean display labels + lookup map
+            const labelToPet = new Map<string, PetState>();
+            const labels: string[] = [];
 
-            for (const c of cached) {
-              petForSpecies[c.speciesId] = await engine.getExistingPetForSpecies(c.speciesId);
+            for (const pet of allPets) {
+              const sp = getSpecies(pet.bones.species);
+              const isCurrent = engine.hasPet && engine.state!.id === pet.id;
+              const name = pet.name.replace(/[\x00-\x1F\x7F]/g, '').trim() || pet.bones.species;
+              const label = isCurrent
+                ? `\u{1F4A1} ${sp.emoji} ${name} (${pet.bones.species}) Lv.${pet.level} \u2190 \u5F53\u524D`
+                : `${sp.emoji} ${name} (${pet.bones.species}) Lv.${pet.level}`;
+              labelToPet.set(label, pet);
+              labels.push(label);
             }
 
-            // Build selection items
-            const items = cached.map((c) => {
-              const existingPet = petForSpecies[c.speciesId];
-              const hasExisting = existingPet !== null;
-              const isCurrent = c.speciesId === currentSpeciesId;
-              const label = isCurrent
-                ? `\u{1F4A1} ${c.emoji} ${c.displayName} (${c.speciesId}) \u2190 \u5F53\u524D`
-                : hasExisting
-                  ? `${c.emoji} ${c.displayName} (${c.speciesId}) \u2014 \u5DF2\u5B75\u5316 Lv.${existingPet!.level}`
-                  : `${c.emoji} ${c.displayName} (${c.speciesId})`;
-
-              return {
-                speciesId: c.speciesId,
-                existingPet,
-                label,
-                isCurrent,
-              };
+            // Sort: current first, then by label
+            labels.sort((a, b) => {
+              if (a.includes('\u2190 \u5F53\u524D')) return -1;
+              if (b.includes('\u2190 \u5F53\u524D')) return 1;
+              return a.localeCompare(b);
             });
 
-            // Sort: current first, then by name
-            items.sort((a, b) => {
-              if (a.isCurrent) return -1;
-              if (b.isCurrent) return 1;
-              return a.speciesId.localeCompare(b.speciesId);
-            });
-
-            // Interactive selection via ctx.ui.custom
-            const selected = await ctx.ui.custom<typeof items[number] | null>(
-              (tui, theme, keybindings, done) => {
-                let selectedIndex = items.findIndex((i) => i.isCurrent);
-                if (selectedIndex === -1) selectedIndex = 0;
-
-                const fgColor = (theme?.foregroundColor as string) || '#ffffff';
-                const bgColor = (theme?.backgroundColor as string) || '#1a1b26';
-                const accentColor = (theme?.accentColor as string) || '#7aa2f7';
-                const dimColor = (theme?.dimColor as string) || '#565f89';
-
-                // Transparent line function
-                const tr = (w: number, segments: Array<{ text: string; fg?: string; bg?: string }>): string => {
-                  let line = '';
-                  for (const seg of segments) {
-                    const fg = seg.fg || fgColor;
-                    const bg = seg.bg || 'transparent';
-                    line += `{${fg}-${bg}}${seg.text}{/${fg}-${bg}}`;
-                  }
-                  // Pad with spaces for full width
-                  const visibleLen = segments.reduce((s, seg) => s + seg.text.length, 0);
-                  if (visibleLen < w) {
-                    line += `{${fgColor}-transparent}${' '.repeat(w - visibleLen)}{/${fgColor}-transparent}`;
-                  }
-                  return line;
-                };
-
-                return {
-                  render(width: number) {
-                    const lines: string[] = [];
-
-                    // Title
-                    lines.push(tr(width, [
-                      { text: ' \u5BA0\u7269\u5217\u8868 \u2014 \u2191/\u2193 \u9009\u62E9  \u23CE \u786E\u8BA4  Esc \u53D6\u6D88', fg: accentColor },
-                    ]));
-                    lines.push(tr(width, [{ text: '', fg: dimColor }]));
-
-                    for (let i = 0; i < items.length; i++) {
-                      const item = items[i];
-                      const isSelected = i === selectedIndex;
-                      const prefix = isSelected ? '\u25B6 ' : '  ';
-                      const label = item.label;
-
-                      if (isSelected) {
-                        lines.push(tr(width, [
-                          { text: `${prefix}${label}`, fg: bgColor, bg: accentColor },
-                        ]));
-                      } else {
-                        lines.push(tr(width, [
-                          { text: `${prefix}${label}`, fg: fgColor },
-                        ]));
-                      }
-                    }
-
-                    // Bottom hint
-                    lines.push(tr(width, [{ text: '', fg: dimColor }]));
-                    return lines;
-                  },
-                  invalidate() {
-                    // no-op: render is stateless
-                  },
-                  dispose() {
-                    // cleanup
-                  },
-                  handleInput(data: string) {
-                    if (data === '\u001b[A' || data === 'k') {
-                      // Up arrow or k
-                      selectedIndex = Math.max(0, selectedIndex - 1);
-                      tui?.requestRender();
-                    } else if (data === '\u001b[B' || data === 'j') {
-                      // Down arrow or j
-                      selectedIndex = Math.min(items.length - 1, selectedIndex + 1);
-                      tui?.requestRender();
-                    } else if (data === '\r' || data === '\n') {
-                      // Enter
-                      done(items[selectedIndex]);
-                    } else if (data === '\u001b' || data === '\u0003') {
-                      // Escape or Ctrl+C
-                      done(null);
-                    }
-                  },
-                };
-              },
-              { overlay: true, overlayOptions: { title: '\u9009\u62E9\u5BA0\u7269' } },
-            );
+            const selected = await ctx.ui.select('\u5BA0\u7269\u5217\u8868', labels);
 
             if (!selected) {
               ctx.ui.notify('\u5DF2\u53D6\u6D88', 'info');
-              // Re-show overlay if it was visible
-              if (overlayControls?.isOverlayVisible()) {
-                overlayControls.showOverlay();
-              }
-              return;
-            }
-
-            // User selected an item
-            if (selected.isCurrent) {
-              ctx.ui.notify(`\u5DF2\u662F\u5F53\u524D\u5BA0\u7269\u3002`, 'info');
               if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
               return;
             }
 
-            if (selected.existingPet) {
-              // Switch to existing pet
-              await engine.switchToPet(selected.existingPet);
-              const sp = getSpecies(selected.existingPet.bones.species);
-              ctx.ui.notify(
-                `\u2705 \u5DF2\u5207\u6362\u5230 "${selected.existingPet.name}" (${sp.emoji} ${sp.name} Lv.${selected.existingPet.level})`,
-                'info',
-              );
-              engine.setBubble('\u6211\u56DE\u6765\u5566\uFF01');
-              ctx.ui.setStatus('pet', buildFooterStatus(engine));
-              if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
-            } else {
-              // Hatch a new pet from this species
-              const seed = hashString(`list-select-${selected.speciesId}-${Date.now()}`);
-              await engine.hatch(seed, selected.speciesId);
-              await loadPet(selected.speciesId);
-              const s = engine.state!;
-              const sp = getSpecies(s.bones.species);
-              const shinyMark = s.bones.isShiny ? ' \u2728' : '';
-              const rarityMap: Record<string, string> = {
-                common: '\u666E\u901A', uncommon: '\u7A00\u6709', rare: '\u7CBE\u826F', epic: '\u53F2\u8BD7', legendary: '\u4F20\u8BF4',
-              };
-              const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
-              ctx.ui.notify(
-                `\u{1F423} \u6B22\u8FCE "${s.name}"\uFF01\n` +
-                `${sp.emoji} ${sp.name} \u00B7 ${rarityLabel}${shinyMark} \u00B7 ${engine.stageName}`,
-                'info',
-              );
-              engine.setBubble(getRandomBubble('excited'));
-              ctx.ui.setStatus('pet', buildFooterStatus(engine));
-              if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
+            const targetPet = labelToPet.get(selected);
+            if (!targetPet) {
+              ctx.ui.notify('\u9009\u62E9\u65E0\u6548', 'warning');
+              return;
             }
+
+            if (engine.hasPet && engine.state!.id === targetPet.id) {
+              ctx.ui.notify('\u5DF2\u662F\u5F53\u524D\u5BA0\u7269\u3002', 'info');
+              if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
+              return;
+            }
+
+            await engine.switchToPet(targetPet);
+            const sp = getSpecies(targetPet.bones.species);
+            ctx.ui.notify(
+              `\u2705 \u5DF2\u5207\u6362\u5230 "${targetPet.name}" (${sp.emoji} ${sp.name} Lv.${targetPet.level})`,
+              'info',
+            );
+            engine.setBubble('\u6211\u56DE\u6765\u5566\uFF01');
+            ctx.ui.setStatus('pet', buildFooterStatus(engine));
+            if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
           } catch (err) {
             ctx.ui.notify('\u5217\u51FA\u5BA0\u7269\u5931\u8D25: ' + (err as Error).message, 'error');
           }
@@ -585,7 +468,7 @@ export function registerCommands(
             'hatch [seed]     \u4ECE\u5DF2\u5BFC\u5165\u7269\u79CD\u4E2D\u968F\u673A\u5B75\u5316\u65B0\u5BA0\u7269\n' +
             'status           \u663E\u793A\u5BA0\u7269\u9762\u677F\uFF08\u5168\u5C4F widget\uFF09\n' +
             'info             \u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848\n' +
-            'list             \u5217\u51FA\u5DF2\u5BFC\u5165\u7269\u79CD\u5E76\u4EA4\u4E92\u9009\u62E9\u5BA0\u7269\n' +
+            'list             \u5217\u51FA\u5DF2\u5B75\u5316\u7684\u5BA0\u7269\u5E76\u5207\u6362\n'
             'pet              \u629A\u6478\u5BA0\u7269\uFF08+\u5FEB\u4E50 +XP\uFF09\n' +
             'feed             \u5582\u98DF\u5BA0\u7269\uFF08+\u9965\u997F +XP\uFF09\n' +
             'rename <name>    \u7ED9\u5BA0\u7269\u6539\u540D\n' +

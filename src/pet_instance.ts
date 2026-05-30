@@ -151,6 +151,17 @@ export class PetEngine {
     return null;
   }
 
+  /** List all pet states (for /pets list). */
+  async listAllPets(): Promise<PetState[]> {
+    const ids = await this.persistence.listPetIds();
+    const pets: PetState[] = [];
+    for (const id of ids) {
+      const pet = await this.persistence.loadPet(id);
+      if (pet) pets.push(pet);
+    }
+    return pets;
+  }
+
   /** Switch to an existing pet by loading its state and updating the active pointer. */
   async switchToPet(petState: PetState): Promise<void> {
     // Save current pet if any
