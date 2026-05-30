@@ -1,6 +1,6 @@
 {
   "name": "@rokiy/pi-pets",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "A virtual pet system for pi - hatch, raise, and bond with coding companions",
   "license": "MIT",
