@@ -19,6 +19,7 @@ declare module '@earendil-works/pi-coding-agent' {
       setWidget(key: string, lines: string[] | undefined): void;
       setStatus(key: string, text: string | undefined): void;
       notify(message: string, level: 'info' | 'warning' | 'error'): void;
+      select(title: string, options: string[]): Promise<string | undefined>;
       confirm(title: string, message: string): Promise<boolean>;
       custom<T>(
         factory: (tui: any, theme: any, keybindings: any, done: (result?: T) => void) => { render(width: number): string[]; invalidate(): void; dispose?(): void; handleInput?(data: string): void },
