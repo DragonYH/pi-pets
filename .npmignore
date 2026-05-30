@@ -1,0 +1,18 @@
+# Local and generated files excluded from npm package
+tests/
+coverage/
+node_modules/
+.pi/
+*.log
+*.tsbuildinfo
+
+# Development/editor files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Repository metadata and CI
+.git/
+.github/
+.gitignore
