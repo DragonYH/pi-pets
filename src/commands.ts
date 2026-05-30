@@ -392,7 +392,7 @@ export function registerCommands(
 
           const existing = await engine.getExistingPetForSpecies(speciesId);
           if (existing) {
-            ctx.ui.notify(`无法删除物种 "${speciesId}"：当前有宠物正在使用该物种（${existing.bones.name}）。请先放生该宠物。`, 'warning');
+            ctx.ui.notify(`无法删除物种 "${speciesId}"：当前有宠物正在使用该物种（${existing.name}）。请先放生该宠物。`, 'warning');
             return;
           }
 
