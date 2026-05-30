@@ -1,5 +1,6 @@
-import type { GrowthStage } from './types.ts';
-import { CONFIG } from './config.ts';
+import type { GrowthStage } from './types.js';
+import { CONFIG } from './config.js';
+import { t } from './i18n/index.js';
 
 /**
  * Determine growth stage from level.
@@ -14,17 +15,10 @@ export function getStage(level: number): GrowthStage {
 }
 
 /**
- * Get the display name for a growth stage (Chinese).
+ * Get the display name for a growth stage (i18n).
  */
 export function stageDisplayName(stage: GrowthStage): string {
-  const names: Record<GrowthStage, string> = {
-    baby: '幼生体',
-    child: '成长体',
-    teen: '进化体',
-    adult: '完全体',
-    elder: '究极体',
-  };
-  return names[stage];
+  return t(`stage_${stage}`);
 }
 
 /**

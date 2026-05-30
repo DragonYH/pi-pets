@@ -1,4 +1,4 @@
-import type { PetBones } from './types.ts';
+import type { PetBones } from './types.js';
 
 /**
  * Generate a fallback name: default = species name/id.

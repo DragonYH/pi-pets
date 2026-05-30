@@ -14,8 +14,10 @@
 <p align="center">
   <a href="#-特性"><img src="https://img.shields.io/badge/特性-📋-FF6B6B?style=flat-square"></a>
   <a href="#-安装"><img src="https://img.shields.io/badge/安装-📦-00B894?style=flat-square"></a>
-  <a href="#-使用"><img src="https://img.shields.io/badge/使用-🚀-0984E3?style=flat-square"></a>
+  <a href="#-使用教程"><img src="https://img.shields.io/badge/使用-🚀-0984E3?style=flat-square"></a>
+  <a href="#-下载宠物文件"><img src="https://img.shields.io/badge/宠物文件-📥-6C5CE7?style=flat-square"></a>
   <a href="#-物种"><img src="https://img.shields.io/badge/物种-🐾-FD79A8?style=flat-square"></a>
+  <a href="#-语言"><img src="https://img.shields.io/badge/语言-🌐-00CECE?style=flat-square"></a>
   <a href="./README.md"><img src="https://img.shields.io/badge/English-🇬🇧-FADB4A?style=flat-square"></a>
 </p>
 
@@ -32,9 +34,10 @@ pi-pets 是 [pi 编码助手](https://github.com/earendil-works/pi-coding-agent)
 - ✅ **7 种情绪状态** — 开心、好奇、兴奋、疲惫、饥饿、沮丧、生病——由需求和编码事件驱动
 - ✅ **3 轴需求系统** — 饥饿、精力、快乐随时间衰减；喂食和抚摸让你的宠物保持健康
 - ✅ **事件驱动反应** — 完成对话轮次、工具调用、测试通过、修复错误均可获得经验值
-- ✅ **精灵图动画** — 导入宠物使用与 Codex 相同的宠物文件（pet.json + spritesheet.webp），以真彩色半块 ANSI 艺术渲染
+- ✅ **精灵图动画** — 导入使用与 Codex 相同的宠物文件（pet.json + spritesheet.webp），以真彩色半块 ANSI 艺术渲染
 - ✅ **状态栏 + 面板 UI** — 始终可见的底部状态行，以及可切换的 Widget 面板
 - ✅ **全局伙伴** — 一只宠物跨所有项目陪伴你
+- ✅ **双语言支持** — 支持中英文，自动检测系统语言
 
 ## 📦 安装
 
@@ -47,13 +50,13 @@ pi install npm:pi-pets
 ### 方式二：GitHub 安装
 
 ```bash
-pi install git:github.com/<user>/pi-pets
+pi install git:github.com/DragonYH/pi-pets
 ```
 
 ### 方式三：本地开发
 
 ```bash
-git clone https://github.com/<user>/pi-pets.git
+git clone https://github.com/DragonYH/pi-pets.git
 cd pi-pets
 npm install
 pi install ./
@@ -63,7 +66,7 @@ pi install ./
 
 重启 pi。输入 `/pets hatch` 孵化你的第一只宠物。
 
-## 🚀 使用
+## 🚀 使用教程
 
 安装后，pi-pets **自动响应**你的编码会话：
 
@@ -72,24 +75,25 @@ pi install ./
 - **工具调用后** — 追踪成功/错误，更新情绪（连续 3+ 错误 → 沮丧）
 - **会话关闭时** — 保存宠物状态并清理定时器
 
-### 命令
+### 命令列表
 
 | 命令 | 说明 |
 |---------|-------------|
 | `/pets` | 显示全部命令及说明 |
-| `/pets hatch [seed]` | 孵化新宠物（可选 seed 字符串） |
+| `/pets hatch [seed]` | 孵化新宠物（可选 seed 字符串，用于确定性生成） |
 | `/pets info` | 显示宠物详细档案（物种、稀有度、属性、个性、技能） |
+| `/pets list` | 列出已孵化宠物并交互切换 |
 | `/pets pet` | 抚摸宠物（+快乐，+XP，显示具体数值） |
 | `/pets feed` | 喂食宠物（+饥饿，+XP，显示具体数值） |
-| `/pets rename <名字>` | 给宠物改名（1-32 字符） |
+| `/pets rename <名字>` | 给宠物改名（1-32 字符，自动过滤控制字符） |
 | `/pets ui` | 显示/隐藏宠物面板 |
 | `/pets release` | 永久放生（需确认） |
 | `/pets import <path>` | 从目录导入精灵图宠物 |
-| `/pets list` | 列出已导入的宠物 |
 | `/pets clean [species]` | 清除指定物种图像缓存（默认当前宠物） |
 | `/pets delete <species>` | 删除指定物种文件（仅当没有宠物使用该物种） |
+| `/pets lang <zh-CN|en>` | 切换显示语言 |
 | `/pets help` | 显示全部命令及说明 |
-| `/pets name <名字>` | rename 的别名（兼容保留） |
+
 ```bash
 # 用自定义种子孵化
 /pets hatch my-secret-seed
@@ -103,7 +107,49 @@ pi install ./
 # 快速互动
 /pets pet
 /pets feed
+
+# 切换语言
+/pets lang en
 ```
+
+### 分步教程
+
+**第一步：下载宠物文件** — pi-pets 需要精灵图宠物文件来在你的终端中显示宠物形象。请从社区网站下载宠物文件（pet.json + spritesheet.webp）：
+
+> 📥 **推荐下载来源：**
+> - [Codex Pet 社区](https://codex-pet.org/) — 基于浏览器的宠物创建器和社区宠物画廊，可以在线创作并下载
+> - [PetDex](https://petdex.crafter.run/) — 宠物档案网站，提供现成的精灵图和物种数据
+
+将下载后的宠物文件放到一个目录中。
+
+**第二步：导入宠物** — 将下载的宠物导入 pi-pets：
+
+```bash
+/pets import /path/to/downloaded-pet-folder
+```
+
+**第三步：孵化你的第一只宠物** — pi-pets 会从你导入的物种中随机选择：
+
+```bash
+/pets hatch
+```
+
+**第四步：与宠物互动** — 它会立即对你的编码活动做出反应：
+
+```bash
+/pets pet      # 抚摸它增加快乐
+/pets feed     # 饿了就喂食
+/pets info     # 查看宠物的状态和心情
+/pets list     # 在多个宠物间切换
+```
+
+**第五步：切换面板** — 宠物会在终端右侧的 Widget 面板中显示：
+
+```bash
+/pets ui       # 显示/隐藏宠物面板
+```
+
+底部状态栏也会实时显示宠物的物种、名字、等级、情绪和需求值。
 
 ## 🧠 架构
 
@@ -140,6 +186,32 @@ pi install ./
 - **`turn_end`** — 给予本轮经验值，检查升级/进化
 - **`tool_execution_end`** — 追踪成功/错误次数，更新情绪
 - **`session_shutdown`** — 保存状态，清理定时器
+
+## 📥 下载宠物文件
+
+pi-pets 使用与 Codex 生态系统兼容的精灵图宠物文件。每个宠物需要同一目录下的一对文件：**pet.json**（元数据）和 **spritesheet.webp**（动画帧）。
+
+### 推荐下载来源
+
+- **[Codex Pet](https://codex-pet.org/)** — 使用基于网页的宠物创建器创建和下载宠物。浏览社区画廊获取其他用户分享的宠物，或自行设计宠物形象。
+
+- **[PetDex](https://petdex.crafter.run/)** — 综合性宠物档案网站，提供可直接使用的精灵图和详细的物种数据。
+
+### 导入下载的宠物
+
+下载宠物文件包后，通过以下命令导入：
+
+```bash
+/pets import /path/to/downloaded-pet-folder
+```
+
+导入后，孵化新物种：
+
+```bash
+/pets hatch
+```
+
+pi-pets 会从你已导入的所有物种中随机选择。
 
 ## 🐾 物种
 
@@ -208,16 +280,41 @@ pi install ./
 
 | 需求 | 衰减速率 | 恢复方式 |
 |------|-----------|----------|
-|| 饥饿 | 0.025/分钟 | `/pets feed` (+40) |
-|| 精力 | 0.015/分钟（活跃）/ 0.1/分钟（空闲）| 30+ 分钟不操作 (+20) |
-|| 快乐 | 0.010/分钟 | `/pets pet` (+15), 编码成功 (+5) |
+| 饥饿 | 0.025/分钟 | `/pets feed` (+40) |
+| 精力 | 0.015/分钟（活跃）/ 0.1/分钟（空闲）| 30+ 分钟不操作 (+20) |
+| 快乐 | 0.010/分钟 | `/pets pet` (+15), 编码成功 (+5) |
+
+## 🌐 语言
+
+pi-pets 支持双语显示（中文和英文）。
+
+### 自动检测
+
+语言会自动从系统环境变量中检测：
+- `LANG`、`LC_ALL` 或 `LC_MESSAGES` 以 `zh` 开头 → 中文
+- 否则 → 英文
+
+### 手动切换
+
+通过 `/pets lang` 命令随时切换：
+
+```bash
+/pets lang zh-CN    # 切换到简体中文
+/pets lang en       # 切换到英文
+```
+
+语言设置在每次会话中有效——重启后重新检测系统语言。
 
 ## 🏗️ 项目结构
 
 ```
 pi-pets/
 ├── src/
-│   ├── index.ts                  # 扩展入口
+│   ├── i18n/                      # 国际化
+│   │   ├── index.ts               # i18n 核心（t(), setLanguage, 自动检测）
+│   │   ├── en.ts                  # 英文翻译字典
+│   │   └── zh-CN.ts               # 中文翻译字典
+│   ├── index.ts                   # 扩展入口
 │   ├── types.ts                   # TypeScript 类型定义
 │   ├── config.ts                  # 配置常量
 │   ├── prng.ts                    # 确定性 PRNG (mulberry32)
@@ -243,8 +340,9 @@ pi-pets/
 │       ├── pet-overlay.ts         # 宠物覆盖层显示逻辑
 │       ├── visual-utils.ts        # 可视化工具函数
 │       ├── overlay.ts             # 升级/进化特效
-│       └── bubbles.ts             # 7 情绪 × 5 条对话气泡池
+│       └── bubbles.ts             # 7 情绪 × 5 条对话气泡池（i18n）
 ├── tsconfig.json
+├── tsconfig.build.json
 ├── package.json
 ├── README.md
 └── README.zh-CN.md
@@ -256,6 +354,12 @@ pi-pets/
 
 ```bash
 npx tsc --noEmit
+```
+
+### 构建
+
+```bash
+npm run build
 ```
 
 ### 在 pi 中运行

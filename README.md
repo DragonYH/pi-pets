@@ -15,7 +15,9 @@
   <a href="#-features"><img src="https://img.shields.io/badge/Features-📋-FF6B6B?style=flat-square"></a>
   <a href="#-installation"><img src="https://img.shields.io/badge/Installation-📦-00B894?style=flat-square"></a>
   <a href="#-usage"><img src="https://img.shields.io/badge/Usage-🚀-0984E3?style=flat-square"></a>
+  <a href="#-downloading-pet-files"><img src="https://img.shields.io/badge/Pet_Files-📥-6C5CE7?style=flat-square"></a>
   <a href="#-species"><img src="https://img.shields.io/badge/Species-🐾-FD79A8?style=flat-square"></a>
+  <a href="#-language"><img src="https://img.shields.io/badge/Language-🌐-00CECE?style=flat-square"></a>
   <a href="./README.zh-CN.md"><img src="https://img.shields.io/badge/🇨🇳_中文-FADB4A?style=flat-square"></a>
 </p>
 
@@ -35,6 +37,7 @@ pi-pets is an **extension** for the [pi coding agent](https://github.com/earendi
 - ✅ **Sprite-based animations** — imported pets use the same file format as Codex (pet.json + spritesheet.webp), rendered with true-color half-block ANSI art
 - ✅ **Footer + Widget UI** — always-visible status line plus a toggleable widget panel with stats, art, and dialog bubbles
 - ✅ **Global companion** — one pet across all your projects; seed derived from your pi config
+- ✅ **i18n** — supports Chinese and English; auto-detects system language
 
 ## 📦 Installation
 
@@ -47,13 +50,13 @@ pi install npm:pi-pets
 ### Option 2: Install from GitHub
 
 ```bash
-pi install git:github.com/<user>/pi-pets
+pi install git:github.com/DragonYH/pi-pets
 ```
 
 ### Option 3: Local Development
 
 ```bash
-git clone https://github.com/<user>/pi-pets.git
+git clone https://github.com/DragonYH/pi-pets.git
 cd pi-pets
 npm install
 pi install ./
@@ -79,17 +82,18 @@ Once installed, pi-pets **reacts automatically** to your coding sessions:
 | `/pets` | Show all commands and help |
 | `/pets hatch [seed]` | Hatch a new pet (optional seed string for determinism) |
 | `/pets info` | Show detailed pet archive (species, rarity, stats, personality, skills) |
+| `/pets list` | List hatched pets and switch interactively |
 | `/pets pet` | Pet your companion (+happiness, +XP with values) |
 | `/pets feed` | Feed your companion (+hunger, +XP with values) |
 | `/pets rename <name>` | Rename your pet (1-32 chars, control chars filtered) |
 | `/pets ui` | Show/hide the pet widget |
 | `/pets release` | Release your pet permanently (confirmation required) |
 | `/pets import <path>` | Import a sprite-based pet from a directory |
-| `/pets list` | List imported pets |
 | `/pets clean [species]` | Clear image cache for a species (default: current pet) |
 | `/pets delete <species>` | Delete species cache file (only if no pet uses this species) |
+| `/pets lang <zh-CN\|en>` | Switch display language |
 | `/pets help` | Show all commands and descriptions |
-| `/pets name <name>` | Alias for rename (preserved for compatibility) |
+
 ```bash
 # Hatch with a custom seed for a specific pet
 /pets hatch my-secret-seed
@@ -103,7 +107,45 @@ Once installed, pi-pets **reacts automatically** to your coding sessions:
 # Quick interaction
 /pets pet
 /pets feed
+
+# Switch language
+/pets lang zh-CN
 ```
+
+### Step-by-Step Tutorial
+
+**Step 1: Import a pet** — pi-pets needs sprite-based pet files to display your companion. Download pet files (pet.json + spritesheet.webp) from community sites, then import them:
+
+```bash
+/pets import /path/to/your-pet-folder
+```
+
+> 📥 **Where to get pet files:**
+> - [Codex Pet Community](https://codex-pet.org/) — browser-based creator and community pet gallery
+> - [PetDex](https://petdex.crafter.run/) — pet archive with spritesheets and species data
+
+**Step 2: Hatch your first pet** — pi-pets randomly selects from your imported species:
+
+```bash
+/pets hatch
+```
+
+**Step 3: Interact with your pet** — it starts responding to your coding activity right away:
+
+```bash
+/pets pet      # Pet it for happiness
+/pets feed     # Feed it when hungry
+/pets info     # Check its stats and mood
+/pets list     # Switch between multiple pets
+```
+
+**Step 4: Toggle the UI** — the pet appears in a widget panel in your terminal:
+
+```bash
+/pets ui       # Show/hide the pet widget
+```
+
+The footer status bar also shows your pet's species, name, level, emotion, and needs at a glance.
 
 ## 🧠 Architecture
 
@@ -140,6 +182,32 @@ Once installed, pi-pets **reacts automatically** to your coding sessions:
 - **`turn_end`** — award turn-based XP, check level-up/evolution
 - **`tool_execution_end`** — track success/error count, update emotion
 - **`session_shutdown`** — save state, clear timers
+
+## 📥 Downloading Pet Files
+
+pi-pets uses sprite-based pet files compatible with the Codex ecosystem. Each pet needs a **pet.json** (metadata) and **spritesheet.webp** (animation frames) in the same directory.
+
+### Recommended Sources
+
+- **[Codex Pet](https://codex-pet.org/)** — Create and download pets with the web-based pet creator. Browse the community gallery for user-submitted pets, or design your own.
+
+- **[PetDex](https://petdex.crafter.run/)** — A comprehensive pet archive featuring ready-to-use spritesheets and detailed species data.
+
+### Importing Downloaded Pets
+
+Once you have downloaded a pet file package, import it:
+
+```bash
+/pets import /path/to/downloaded-pet-folder
+```
+
+After importing, hatch the new species:
+
+```bash
+/pets hatch
+```
+
+pi-pets will randomly select from all species you've imported.
 
 ## 🐾 Species
 
@@ -208,16 +276,41 @@ Once installed, pi-pets **reacts automatically** to your coding sessions:
 
 | Need | Decay Rate | Recovery |
 |------|-----------|----------|
-|| Hunger | 0.025/min | `/pets feed` (+40) |
-|| Energy | 0.015/min (active) / 0.1/min (idle) | 30+ min idle (+20) |
-|| Happiness | 0.010/min | `/pets pet` (+15), coding success (+5) |
+| Hunger | 0.025/min | `/pets feed` (+40) |
+| Energy | 0.015/min (active) / 0.1/min (idle) | 30+ min idle (+20) |
+| Happiness | 0.010/min | `/pets pet` (+15), coding success (+5) |
+
+## 🌐 Language
+
+pi-pets supports bilingual display (Chinese and English).
+
+### Auto-detection
+
+The language is automatically detected from your system environment variables:
+- `LANG`, `LC_ALL`, or `LC_MESSAGES` starting with `zh` → Chinese
+- Otherwise → English
+
+### Manual Switching
+
+Switch at runtime with the `/pets lang` command:
+
+```bash
+/pets lang zh-CN    # Switch to Chinese
+/pets lang en       # Switch to English
+```
+
+Language preferences are per-session — the system language setting is re-evaluated on restart.
 
 ## 🏗️ Project Structure
 
 ```
 pi-pets/
 ├── src/
-│   ├── index.ts                  # Extension entry point
+│   ├── i18n/                      # Internationalization
+│   │   ├── index.ts               # i18n core (t(), setLanguage, detect)
+│   │   ├── en.ts                  # English translations
+│   │   └── zh-CN.ts               # Chinese translations
+│   ├── index.ts                   # Extension entry point
 │   ├── types.ts                   # TypeScript type definitions
 │   ├── config.ts                  # All constants and configuration
 │   ├── prng.ts                    # Deterministic PRNG (mulberry32)
@@ -231,7 +324,7 @@ pi-pets/
 │   ├── evolution.ts               # Stage/growth logic
 │   ├── commands.ts                # /pets command registration (multiple subcommands)
 │   ├── events.ts                  # Lifecycle event binding + UI render loop
-│   ├── renderer/                   # Pet rendering pipeline
+│   ├── renderer/                  # Pet rendering pipeline
 │   │   ├── art-provider.ts        # Frame cache and animation state management
 │   │   ├── cache.ts               # Persistent frame cache (~/.pi/pets/pet-cache/)
 │   │   ├── converter.ts           # Spritesheet.webp → pixel grid conversion
@@ -243,8 +336,9 @@ pi-pets/
 │       ├── pet-overlay.ts         # Pet overlay display logic
 │       ├── visual-utils.ts        # Visual utility functions
 │       ├── overlay.ts             # Level-up / evolution overlays
-│       └── bubbles.ts             # 7-emotion dialog bubble pool (35 bubbles)
+│       └── bubbles.ts             # 7-emotion dialog bubble pool (i18n)
 ├── tsconfig.json
+├── tsconfig.build.json
 ├── package.json
 ├── README.md
 └── README.zh-CN.md
@@ -256,6 +350,12 @@ pi-pets/
 
 ```bash
 npx tsc --noEmit
+```
+
+### Build
+
+```bash
+npm run build
 ```
 
 ### Run with pi

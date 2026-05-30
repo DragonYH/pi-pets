@@ -1,5 +1,5 @@
-import { loadCache } from './cache.ts';
-import type { AnimationState, CacheEntry } from '../types.ts';
+import { loadCache } from './cache.js';
+import type { AnimationState, CacheEntry } from '../types.js';
 
 /**
  * In-memory cache of loaded pet frames.

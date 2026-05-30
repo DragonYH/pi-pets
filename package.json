@@ -1,18 +1,64 @@
 {
   "name": "pi-pets",
   "version": "0.1.0",
-  "description": "A virtual pet system for pi - hatch, raise, and bond with coding companions",
   "type": "module",
+  "description": "A virtual pet system for pi - hatch, raise, and bond with coding companions",
+  "license": "MIT",
+  "author": "DragonYH <1016633827@qq.com>",
+  "homepage": "https://github.com/DragonYH/pi-pets#readme",
+  "bugs": {
+    "url": "https://github.com/DragonYH/pi-pets/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DragonYH/pi-pets.git"
+  },
+  "keywords": [
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "pets",
+    "virtual-pet",
+    "coding-companion"
+  ],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "README.zh-CN.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "npx tsx --test src/i18n/i18n.test.ts",
+    "prepack": "npm run clean && npm run build",
+    "prepublishOnly": "npm run typecheck && npm run build"
+  },
   "pi": {
     "extensions": [
-      "./src/index.ts"
-    ]
+      "./dist/index.js"
+    ],
+    "image": "https://img.dog/file/1780125409045_image.webp"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "dependencies": {
     "sharp": "^0.34.5",
     "typebox": "^1.1.38"
   },
   "devDependencies": {
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
     "@types/node": "^25.9.1",
     "@types/sharp": "^0.31.1"
   }

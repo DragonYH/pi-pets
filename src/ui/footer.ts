@@ -1,5 +1,5 @@
-import type { PetEngine } from '../pet_instance.ts';
-import { getSpecies } from '../species.ts';
+import type { PetEngine } from '../pet_instance.js';
+import { getSpecies } from '../species.js';
 
 /**
  * Build the footer status line for the pet.

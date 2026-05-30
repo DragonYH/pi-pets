@@ -1,5 +1,5 @@
-import type { PixelFrame } from './converter.ts';
-import { CONFIG } from '../config.ts';
+import type { PixelFrame } from './converter.js';
+import { CONFIG } from '../config.js';
 
 const { ALPHA_OPAQUE_THRESHOLD } = CONFIG;
 

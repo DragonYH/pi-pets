@@ -1,4 +1,4 @@
-import type { SpeciesDef } from './types.ts';
+import type { SpeciesDef } from './types.js';
 
 /**
  * No built-in species — all species come from `~/.pi/agent/pets/`.

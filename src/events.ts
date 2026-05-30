@@ -1,10 +1,11 @@
 import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
-import type { PetEngine } from './pet_instance.ts';
-import { CONFIG } from './config.ts';
-import { PetOverlayComponent } from './ui/pet-overlay.ts';
-import { buildFooterStatus } from './ui/footer.ts';
-import { loadPet } from './renderer/art-provider.ts';
-import { stageDisplayName } from './evolution.ts';
+import type { PetEngine } from './pet_instance.js';
+import { CONFIG } from './config.js';
+import { PetOverlayComponent } from './ui/pet-overlay.js';
+import { buildFooterStatus } from './ui/footer.js';
+import { loadPet } from './renderer/art-provider.js';
+import { stageDisplayName } from './evolution.js';
+import { t } from './i18n/index.js';
 
 export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
   let tickTimer: ReturnType<typeof setInterval> | null = null;
@@ -18,12 +19,41 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
   let overlayHandle: any = null;
   let overlayComponent: PetOverlayComponent | null = null;
 
-  // ---- Session start: load state + show overlay ----
+  // ---- Tick timer helper (can be started on-demand) ----
+  function startTicking() {
+    if (tickTimer === null) {
+      tickTimer = setInterval(() => {
+        if (!sessionActive) return;
+        engine.tick();
+      }, CONFIG.TICK_INTERVAL);
+    }
+  }
+
+  // ---- Session start: always create overlay; load pet if available ----
   pi.on('session_start', async (_event, ctx) => {
+    safeUi = ctx.ui;
+    sessionActive = true;
+
+    // ---- Always create non-capturing overlay via setWidget factory ----
+    // setWidget factory gives us tui access without intercepting keyboard.
+    // We create a persistent non-capturing overlay from within the factory,
+    // then return an invisible widget so the bridge itself doesn't consume space.
+    (safeUi!).setWidget('pi-pets-bridge', ((tui: any, _theme: any) => {
+      overlayComponent = new PetOverlayComponent(engine, tui);
+      overlayHandle = tui.showOverlay(overlayComponent, {
+        nonCapturing: true,
+        anchor: 'top-right',
+        width: 40,
+        margin: { top: 1, right: 1 },
+      });
+      // Return invisible widget — the overlay is what users see
+      return { render: () => [], invalidate: () => {} } as any;
+    }) as any);
+
+    // ---- Load pet state if available ----
     const loaded = await engine.load();
     if (loaded && engine.state) {
       engine.onSessionStart();
-      safeUi = ctx.ui;
 
       // Preload pet frames into memory
       try {
@@ -32,31 +62,8 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
         // Pet not imported yet — overlay shows placeholder
       }
 
-      sessionActive = true;
-
-      // ---- Create non-capturing overlay via setWidget factory ----
-      // setWidget factory gives us tui access without intercepting keyboard.
-      // We create a persistent non-capturing overlay from within the factory,
-      // then return an invisible widget so the bridge itself doesn't consume space.
-      (safeUi!).setWidget('pi-pets-bridge', ((tui: any, _theme: any) => {
-        overlayComponent = new PetOverlayComponent(engine, tui);
-        overlayHandle = tui.showOverlay(overlayComponent, {
-          nonCapturing: true,
-          anchor: 'top-right',
-          width: 40,
-          margin: { top: 1, right: 1 },
-        });
-        // Return invisible widget — the overlay is what users see
-        return { render: () => [], invalidate: () => {} } as any;
-      }) as any);
-
-      // ---- Tick timer: needs decay, emotion change ----
-      if (tickTimer === null) {
-        tickTimer = setInterval(() => {
-          if (!sessionActive) return;
-          engine.tick();
-        }, CONFIG.TICK_INTERVAL);
-      }
+      // Start tick timer for needs decay, emotion changes
+      startTicking();
 
       // Set initial footer
       safeUi!.setStatus('pet', buildFooterStatus(engine));
@@ -91,14 +98,14 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
 
     const { leveledUp, newStage, xpGained } = engine.onTurnComplete();
 
-    engine.setBubble(`赚了 ${xpGained} XP！`);
+    engine.setBubble(t('event_xp_earned', { xp: String(xpGained) }));
 
     if (leveledUp) {
-      ctx.ui.notify(`⬆ ${engine.state.name} 升到 Lv.${engine.state.level}！`, 'info');
+      ctx.ui.notify(t('notify_level_up', { name: engine.state.name, level: String(engine.state.level) }), 'info');
     }
 
     if (newStage) {
-      ctx.ui.notify(`🌟 ${engine.state.name} 进化了！→ ${stageDisplayName(newStage)}`, 'info');
+      ctx.ui.notify(t('notify_evolution', { name: engine.state.name, stage: stageDisplayName(newStage) }), 'info');
     }
 
     ctx.ui.setStatus('pet', buildFooterStatus(engine));
@@ -138,5 +145,6 @@ export function bindEvents(pi: ExtensionAPI, engine: PetEngine) {
       return false;
     },
     isOverlayVisible: () => overlayVisible,
+    startTicking: () => { startTicking(); },
   };
 }

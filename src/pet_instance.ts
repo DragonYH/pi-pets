@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import type { PetBones, PetState, GrowthStage, EmotionState, Needs } from './types.ts';
-import { CONFIG } from './config.ts';
-import { hatch } from './hatchery.ts';
-import { generateFallbackName } from './name_generator.ts';
-import { getLevel, xpFromTurnComplete, xpFromToolSuccess, xpFromTestsAllPass, xpFromErrorFixed } from './xp.ts';
-import { mulberry32 } from './prng.ts';
-import { getStage, stageDisplayName, isStageTransition } from './evolution.ts';
-import { tickNeeds, feed, petPet, applyIdleRecovery, resolveEmotion } from './needs.ts';
-import { Persistence } from './persistence.ts';
+import type { PetBones, PetState, GrowthStage, EmotionState, Needs } from './types.js';
+import { CONFIG } from './config.js';
+import { hatch } from './hatchery.js';
+import { generateFallbackName } from './name_generator.js';
+import { getLevel, xpFromTurnComplete, xpFromToolSuccess, xpFromTestsAllPass, xpFromErrorFixed } from './xp.js';
+import { mulberry32 } from './prng.js';
+import { getStage, stageDisplayName, isStageTransition } from './evolution.js';
+import { tickNeeds, feed, petPet, applyIdleRecovery, resolveEmotion } from './needs.js';
+import { Persistence } from './persistence.js';
+import { t } from './i18n/index.js';
 
 /**
  * PetEngine - the main controller for pets.
@@ -52,7 +53,7 @@ export class PetEngine {
   }
 
   get petName(): string {
-    return this.state?.name ?? '无';
+    return this.state?.name ?? t('pet_name_default');
   }
 
   /** Reinitialize PRNG from pet seed (ensures deterministic XP rolls). */
@@ -316,13 +317,6 @@ export class PetEngine {
 
   get rarityLabel(): string {
     if (!this.state) return '';
-    const map: Record<string, string> = {
-      common: '\u666E\u901A',
-      uncommon: '\u7A00\u6709',
-      rare: '\u7CBE\u826F',
-      epic: '\u53F2\u8BD7',
-      legendary: '\u4F20\u8BF4',
-    };
-    return map[this.state.bones.rarity] ?? this.state.bones.rarity;
+    return t(`rarity_${this.state.bones.rarity}`);
   }
 }

@@ -1,4 +1,4 @@
-import { CONFIG } from './config.ts';
+import { CONFIG } from './config.js';
 
 /**
  * Calculate level from total XP.

@@ -1,7 +1,7 @@
-import type { PetBones, RarityTier, Stats } from './types.ts';
-import { STAT_KEYS } from './types.ts';
-import { createPrng } from './prng.ts';
-import { CONFIG } from './config.ts';
+import type { PetBones, RarityTier, Stats } from './types.js';
+import { STAT_KEYS } from './types.js';
+import { createPrng } from './prng.js';
+import { CONFIG } from './config.js';
 
 /**
  * Determine rarity tier from a random roll [0, 100).

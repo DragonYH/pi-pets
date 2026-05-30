@@ -2,8 +2,8 @@ import { readFile, writeFile, mkdir, unlink, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import { CONFIG } from '../config.ts';
-import type { CacheEntry } from '../types.ts';
+import { CONFIG } from '../config.js';
+import type { CacheEntry } from '../types.js';
 
 export const CACHE_VERSION = 3;
 

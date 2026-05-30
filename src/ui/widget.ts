@@ -1,8 +1,9 @@
-import type { PetEngine } from '../pet_instance.ts';
-import { stageDisplayName } from '../evolution.ts';
-import { getSpecies } from '../species.ts';
-import { getFrame, getCurrentAnimation } from '../renderer/art-provider.ts';
-import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.ts';
+import type { PetEngine } from '../pet_instance.js';
+import { stageDisplayName } from '../evolution.js';
+import { getSpecies } from '../species.js';
+import { getFrame, getCurrentAnimation } from '../renderer/art-provider.js';
+import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.js';
+import { t } from '../i18n/index.js';
 
 
 /** Widget constants — every line is exactly W chars. */
@@ -40,7 +41,7 @@ export function buildWidget(
     }
   } else {
     // Fallback: no art loaded — show placeholder
-    const placeholder = '~~ 未导入 ~~';
+    const placeholder = t('placeholder_not_imported');
     const vLen = visualLen(placeholder);
     const left = Math.floor((I - vLen) / 2);
     lines.push(`│${' '.repeat(left)}${placeholder}${' '.repeat(I - left - vLen)}│`);
@@ -65,10 +66,7 @@ export function buildWidget(
   }
 
   // Info line 2: rarity, emotion, XP
-  const rarityMap: Record<string, string> = {
-    common: '普通', uncommon: '稀有', rare: '精良', epic: '史诗', legendary: '传说',
-  };
-  const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
+  const rarityLabel = t(`rarity_${s.bones.rarity}`);
   const xpStr = `${s.xp}XP`;
   const line2 = `${rarityLabel} ${engine.emotionEmoji} ${xpStr}`;
   lines.push(`│${visualPadEnd(line2, I)}│`);

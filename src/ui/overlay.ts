@@ -1,5 +1,6 @@
-import type { GrowthStage } from '../types.ts';
-import { stageDisplayName } from '../evolution.ts';
+import type { GrowthStage } from '../types.js';
+import { stageDisplayName } from '../evolution.js';
+import { t } from '../i18n/index.js';
 
 /**
  * Build overlay art for level-up or evolution events.
@@ -17,8 +18,8 @@ export function levelUpOverlay(name: string, newLevel: number): string[] {
   return [
     '╔══════════════════════════════╗',
     '║                              ║',
-    `║${center('⬆ LEVEL UP! ⬆')}║`,
-    `║${center(`${name} 升到 Lv.${newLevel}！`)}║`,
+    `║${center(t('overlay_level_up_title'))}║`,
+    `║${center(t('overlay_level_up_message', { name, level: String(newLevel) }))}║`,
     '║                              ║',
     '╚══════════════════════════════╝',
   ];
@@ -29,9 +30,9 @@ export function evolutionOverlay(name: string, newStage: GrowthStage): string[] 
   return [
     '╔══════════════════════════════╗',
     '║          ★ ☆ ★              ║',
-    '║       EVOLUTION!            ║',
-    `║${center(`${name} 进化！`)}║`,
-    `║${center(`→ ${stageName}`)}║`,
+    `║${center(t('overlay_evolution_title'))}║`,
+    `║${center(t('overlay_evolution_message', { name }))}║`,
+    `║${center(t('overlay_evolution_to', { stage: stageName }))}║`,
     '║          ★ ☆ ★              ║',
     '╚══════════════════════════════╝',
   ];

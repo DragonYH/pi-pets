@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { PetEngine } from './pet_instance.ts';
-import { bindEvents } from './events.ts';
-import { registerCommands } from './commands.ts';
+import { PetEngine } from './pet_instance.js';
+import { bindEvents } from './events.js';
+import { registerCommands } from './commands.js';
 
 export default function (pi: ExtensionAPI) {
   const engine = new PetEngine();

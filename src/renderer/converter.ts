@@ -1,8 +1,8 @@
 import sharp from 'sharp';
 
-import { CONFIG } from '../config.ts';
+import { CONFIG } from '../config.js';
 
-import type { AnimationState } from '../types.ts';
+import type { AnimationState } from '../types.js';
 const { ALPHA_OPAQUE_THRESHOLD, MIN_OPAQUE_RATIO } = CONFIG;
 /**
  * RGBA pixel: [r, g, b, a]

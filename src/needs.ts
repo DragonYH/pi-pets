@@ -1,6 +1,6 @@
-import type { Needs } from './types.ts';
-import type { EmotionState } from './types.ts';
-import { CONFIG } from './config.ts';
+import type { Needs } from './types.js';
+import type { EmotionState } from './types.js';
+import { CONFIG } from './config.js';
 
 /**
  * Tick needs decay based on elapsed time (in ms).

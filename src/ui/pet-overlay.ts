@@ -2,15 +2,16 @@
 interface Component { render(width: number): string[]; invalidate(): void; }
 // eslint-disable-next-line
 type TUI = any;
-import type { PetEngine } from '../pet_instance.ts';
-import { getFrame, getCurrentAnimation, getFrameCount } from '../renderer/art-provider.ts';
-import { getRandomBubble } from './bubbles.ts';
-import type { EmotionState } from '../types.ts';
-import { stageDisplayName } from '../evolution.ts';
-import { getSpecies } from '../species.ts';
-import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.ts';
+import type { PetEngine } from '../pet_instance.js';
+import { getFrame, getCurrentAnimation, getFrameCount } from '../renderer/art-provider.js';
+import { getRandomBubble } from './bubbles.js';
+import type { EmotionState } from '../types.js';
+import { stageDisplayName } from '../evolution.js';
+import { getSpecies } from '../species.js';
+import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.js';
 
-import { CONFIG } from '../config.ts';
+import { CONFIG } from '../config.js';
+import { t } from '../i18n/index.js';
 
 
 
@@ -74,7 +75,7 @@ export class PetOverlayComponent implements Component {
       }
     } else {
       // Fallback: no art loaded — show placeholder
-      const placeholder = '~~ no pet ~~';
+      const placeholder = t('placeholder_no_pet');
       const vLen = visualLen(placeholder);
       const left = Math.floor((innerW - vLen) / 2);
       lines.push(`│${' '.repeat(left)}${placeholder}${' '.repeat(innerW - left - vLen)}│`);

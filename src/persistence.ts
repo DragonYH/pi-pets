@@ -2,8 +2,8 @@ import { readFile, writeFile, mkdir, readdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { homedir } from 'node:os';
-import type { PetState } from './types.ts';
-import { CONFIG } from './config.ts';
+import type { PetState } from './types.js';
+import { CONFIG } from './config.js';
 
 /**
  * Persistence manager for n independent pet states.

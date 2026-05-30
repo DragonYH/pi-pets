@@ -1,14 +1,15 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import type { PetEngine } from './pet_instance.ts';
-import type { PetState } from './types.ts';
-import { buildFooterStatus } from './ui/footer.ts';
-import { getRandomBubble } from './ui/bubbles.ts';
-import { hashString } from './prng.ts';
-import { xpFromPetCommand, xpFromFeedCommand } from './xp.ts';
-import { importPet } from './renderer/importer.ts';
-import { loadPet, setAnimationOverride, unloadPet, reloadPet } from './renderer/art-provider.ts';
-import { invalidateCache, listCachedSpecies, hasCache } from './renderer/cache.ts';
-import { getSpecies } from './species.ts';
+import type { PetEngine } from './pet_instance.js';
+import type { PetState } from './types.js';
+import { buildFooterStatus } from './ui/footer.js';
+import { getRandomBubble } from './ui/bubbles.js';
+import { hashString } from './prng.js';
+import { xpFromPetCommand, xpFromFeedCommand } from './xp.js';
+import { importPet } from './renderer/importer.js';
+import { loadPet, setAnimationOverride, unloadPet, reloadPet } from './renderer/art-provider.js';
+import { invalidateCache, listCachedSpecies, hasCache } from './renderer/cache.js';
+import { getSpecies } from './species.js';
+import { t, setLanguage, getLanguage, getSupportedLanguages } from './i18n/index.js';
 
 export function registerCommands(
   pi: ExtensionAPI,
@@ -18,28 +19,40 @@ export function registerCommands(
     hideOverlay: () => void;
     toggleOverlay: () => boolean;
     isOverlayVisible: () => boolean;
+    startTicking?: () => void;
   },
 ) {
 
   // ===== Commands =====
 
   pi.registerCommand('pets', {
-    description: '\u5BA0\u7269\u7CFB\u7EDF - \u67E5\u770B/\u9972\u517B\u4F60\u7684\u7F16\u7801\u4F19\u4F34',
+    description: t('cmd_pets_desc'),
     getArgumentCompletions: (prefix: string) => {
       const subcommands: Array<{ value: string; label: string; description: string }> = [
-        { value: 'hatch',   label: 'hatch',   description: '\u968F\u673A\u5B75\u5316\u4E00\u53EA\u65B0\u5BA0\u7269' },
-        { value: 'info',    label: 'info',    description: '\u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848' },
-{ value: 'list',    label: 'list',    description: '列出已孵化宠物并交互切换' },
-        { value: 'pet',     label: 'pet',     description: '\u629A\u6478\u5BA0\u7269\uFF0C\u5B83\u4F1A\u5F88\u5F00\u5FC3' },
-        { value: 'feed',    label: 'feed',    description: '\u5582\u98DF\u5BA0\u7269' },
-        { value: 'rename',  label: 'rename',  description: '\u7ED9\u5BA0\u7269\u6539\u540D' },
-        { value: 'ui',      label: 'ui',      description: '\u663E\u793A/\u9690\u85CF\u5BA0\u7269\u9762\u677F' },
-        { value: 'release', label: 'release', description: '\u653E\u751F\u5F53\u524D\u5BA0\u7269\uFF08\u4E0D\u53EF\u64A4\u9500\uFF09' },
-        { value: 'import',  label: 'import',  description: '\u5BFC\u5165\u7CBE\u7075\u56FE\u5BA0\u7269' },
-        { value: 'clean',   label: 'clean',   description: '\u6E05\u9664\u6307\u5B9A\u5BA0\u7269\u7684\u56FE\u50CF\u7F13\u5B58' },
-        { value: 'delete',  label: 'delete',  description: '删除指定物种文件（仅当没有宠物使用该物种）' },
-        { value: 'help',    label: 'help',    description: '\u663E\u793A\u5168\u90E8\u547D\u4EE4\u5E2E\u52A9' },
+        { value: 'hatch',   label: 'hatch',   description: t('cmd_hatch_desc') },
+        { value: 'info',    label: 'info',    description: t('cmd_info_desc') },
+        { value: 'list',    label: 'list',    description: t('cmd_list_desc') },
+        { value: 'pet',     label: 'pet',     description: t('cmd_pet_desc') },
+        { value: 'feed',    label: 'feed',    description: t('cmd_feed_desc') },
+        { value: 'rename',  label: 'rename',  description: t('cmd_rename_desc') },
+        { value: 'ui',      label: 'ui',      description: t('cmd_ui_desc') },
+        { value: 'release', label: 'release', description: t('cmd_release_desc') },
+        { value: 'import',  label: 'import',  description: t('cmd_import_desc') },
+        { value: 'clean',   label: 'clean',   description: t('cmd_clean_desc') },
+        { value: 'delete',  label: 'delete',  description: t('cmd_delete_desc') },
+        { value: 'lang',    label: 'lang',    description: t('cmd_lang_desc') },
+        { value: 'help',    label: 'help',    description: t('cmd_help_desc') },
       ];
+
+      // Handle "lang <zh-CN|en>" completion
+      if (prefix.trim().startsWith('lang ')) {
+        const partial = prefix.trim().slice('lang '.length);
+        const langs = getSupportedLanguages();
+        return langs
+          .filter((l) => l.startsWith(partial))
+          .map((l) => ({ value: `lang ${l}`, label: `lang ${l}`, insertValue: `lang ${l}`, description: `Switch to ${l}` }));
+      }
+
       return subcommands
         .filter((c) => c.value.startsWith(prefix))
         .map((c) => ({ value: c.value, label: c.label, insertValue: c.value, description: c.description }));
@@ -52,22 +65,38 @@ export function registerCommands(
         // ---- bare /pets (no subcommand) ----
         case '': {
           ctx.ui.notify(
-            '/pets 宠物系统命令\n' +
-            '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n' +
-            'hatch [seed]     从已导入物种中随机孵化新宠物\n' +
-            'info             查看宠物详细档案\n' +
-            'list             列出已孵化宠物并交互切换\n' +
-            'pet              抚摸宠物（+快乐 +XP）\n' +
-            'feed             喂食宠物（+饥饿 +XP）\n' +
-            'rename <name>    给宠物改名\n' +
-            'ui               显示/\u9690藏宠物面板\n' +
-            'release          放生当前宠物（不可撤销）\n' +
-            'import <path>    导入精灵图宠物（仅添加物种，不孵化）\n' +
-            'clean [species]  清理图像缓存（无参时清理当前宠物）\n' +
-            'delete <species>  删除指定物种文件（无宠物使用时）\n' +
-            'help             显示本帮助',
+            t('help_title') + '\n' +
+            t('help_separator') + '\n' +
+            t('help_hatch') + '\n' +
+            t('help_info') + '\n' +
+            t('help_list') + '\n' +
+            t('help_pet') + '\n' +
+            t('help_feed') + '\n' +
+            t('help_rename') + '\n' +
+            t('help_ui') + '\n' +
+            t('help_release') + '\n' +
+            t('help_import') + '\n' +
+            t('help_clean') + '\n' +
+            t('help_delete') + '\n' +
+            t('help_lang') + '\n' +
+            t('help_help'),
             'info',
           );
+          break;
+        }
+
+        // ---- lang <zh-CN|en> — switch language ----
+        case 'lang': {
+          const langArg = parts.slice(1).join(' ').trim();
+          if (langArg === 'zh-cn' || langArg === 'zh' || langArg === 'cn') {
+            setLanguage('zh-CN');
+            ctx.ui.notify(t('notify_lang_switched_zh'), 'info');
+          } else if (langArg === 'en' || langArg === 'english') {
+            setLanguage('en');
+            ctx.ui.notify(t('notify_lang_switched_en'), 'info');
+          } else {
+            ctx.ui.notify(t('notify_lang_unsupported', { lang: langArg || '' }), 'warning');
+          }
           break;
         }
 
@@ -75,7 +104,7 @@ export function registerCommands(
         case 'import': {
           const pathArg = parts[1];
           if (!pathArg) {
-            ctx.ui.notify('\u8BF7\u6307\u5B9A\u5BA0\u7269\u76EE\u5F55\u8DEF\u5F84\uFF1A/pets import <path>', 'warning');
+            ctx.ui.notify(t('notify_need_path'), 'warning');
             return;
           }
           try {
@@ -86,21 +115,21 @@ export function registerCommands(
               await reloadPet(result.speciesId);
               engine.setBubble(getRandomBubble('excited'));
               ctx.ui.setStatus('pet', buildFooterStatus(engine));
-              ctx.ui.notify(`\u{1F484} ${result.displayName} \u7684\u5916\u89C2\u5DF2\u66F4\u65B0\uFF01`, 'info');
+              ctx.ui.notify(t('event_import_appearance', { displayName: result.displayName }), 'info');
               return;
             }
 
             // Just imported — preload frames
             await loadPet(result.speciesId);
 
-            engine.setBubble('\u{1F4E6} \u65B0\u7269\u79CD\u5DF2\u52A0\u5165\u56FE\u9274\uFF01');
+            engine.setBubble(t('event_new_species'));
             ctx.ui.setStatus('pet', buildFooterStatus(engine));
             ctx.ui.notify(
-              `\u{1F4E6} \u5DF2\u5BFC\u5165 "${result.displayName}" (${result.speciesId})\n` +
-              `使用 /pets hatch 随机孵化该物种`, 'info',
+              t('notify_imported', { displayName: result.displayName, speciesId: result.speciesId }) + '\n' +
+              t('notify_import_hint'), 'info',
             );
           } catch (err) {
-            ctx.ui.notify('\u5BFC\u5165\u5931\u8D25: ' + (err as Error).message, 'error');
+            ctx.ui.notify(t('notify_import_failed', { message: (err as Error).message }), 'error');
           }
           return;
         }
@@ -112,7 +141,7 @@ export function registerCommands(
             const allPets = await engine.listAllPets();
             if (allPets.length === 0) {
               ctx.ui.notify(
-                '\u8FD8\u6CA1\u6709\u5B75\u5316\u7684\u5BA0\u7269\u3002\u8BF7\u4F7F\u7528 /pets hatch \u5B75\u5316\u4E00\u53EA\u65B0\u5BA0\u7269\u3002',
+                t('notify_already_hatched'),
                 'info',
               );
               return;
@@ -127,7 +156,7 @@ export function registerCommands(
               const isCurrent = engine.hasPet && engine.state!.id === pet.id;
               const name = pet.name.replace(/[\x00-\x1F\x7F]/g, '').trim() || pet.bones.species;
               const label = isCurrent
-                ? `\u{1F4A1} ${sp.emoji} ${name} (${pet.bones.species}) Lv.${pet.level} \u2190 \u5F53\u524D`
+                ? `💡 ${sp.emoji} ${name} (${pet.bones.species}) Lv.${pet.level} ← ${t('widget_current_label')}`
                 : `${sp.emoji} ${name} (${pet.bones.species}) Lv.${pet.level}`;
               labelToPet.set(label, pet);
               labels.push(label);
@@ -135,27 +164,27 @@ export function registerCommands(
 
             // Sort: current first, then by label
             labels.sort((a, b) => {
-              if (a.includes('\u2190 \u5F53\u524D')) return -1;
-              if (b.includes('\u2190 \u5F53\u524D')) return 1;
+              if (a.includes('←')) return -1;
+              if (b.includes('←')) return 1;
               return a.localeCompare(b);
             });
 
-            const selected = await ctx.ui.select('\u5BA0\u7269\u5217\u8868', labels);
+            const selected = await ctx.ui.select(t('notify_select_title'), labels);
 
             if (!selected) {
-              ctx.ui.notify('\u5DF2\u53D6\u6D88', 'info');
+              ctx.ui.notify(t('notify_input_cancelled'), 'info');
               if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
               return;
             }
 
             const targetPet = labelToPet.get(selected);
             if (!targetPet) {
-              ctx.ui.notify('\u9009\u62E9\u65E0\u6548', 'warning');
+              ctx.ui.notify(t('notify_selection_invalid'), 'warning');
               return;
             }
 
             if (engine.hasPet && engine.state!.id === targetPet.id) {
-              ctx.ui.notify('\u5DF2\u662F\u5F53\u524D\u5BA0\u7269\u3002', 'info');
+              ctx.ui.notify(t('notify_already_current'), 'info');
               if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
               return;
             }
@@ -163,14 +192,14 @@ export function registerCommands(
             await engine.switchToPet(targetPet);
             const sp = getSpecies(targetPet.bones.species);
             ctx.ui.notify(
-              `\u2705 \u5DF2\u5207\u6362\u5230 "${targetPet.name}" (${sp.emoji} ${sp.name} Lv.${targetPet.level})`,
+              t('notify_switched_to', { name: targetPet.name, emoji: sp.emoji, species: sp.name, level: String(targetPet.level) }),
               'info',
             );
-            engine.setBubble('\u6211\u56DE\u6765\u5566\uFF01');
+            engine.setBubble(t('event_switched_back'));
             ctx.ui.setStatus('pet', buildFooterStatus(engine));
             if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
           } catch (err) {
-            ctx.ui.notify('\u5217\u51FA\u5BA0\u7269\u5931\u8D25: ' + (err as Error).message, 'error');
+            ctx.ui.notify(t('notify_list_failed', { message: (err as Error).message }), 'error');
           }
           return;
         }
@@ -181,7 +210,7 @@ export function registerCommands(
           const available = await listCachedSpecies();
           if (available.length === 0) {
             ctx.ui.notify(
-              '\u8FD8\u6CA1\u6709\u53EF\u5B75\u5316\u7684\u7269\u79CD\u3002\u8BF7\u5148\u4F7F\u7528 /pets import <path> \u5BFC\u5165\u4E00\u4E2A\u5BA0\u7269\u7269\u79CD\u3002',
+              t('notify_no_species'),
               'warning',
             );
             return;
@@ -189,11 +218,11 @@ export function registerCommands(
 
           if (engine.hasPet) {
             const confirmed = await ctx.ui.confirm(
-              '\u5DF2\u6709\u5BA0\u7269',
-              `\u5F53\u524D\u6709\u5BA0\u7269 "${engine.petName}"\u3002\u5B75\u5316\u65B0\u5BA0\u7269\u4F1A\u4FDD\u7559\u65E7\u5BA0\u7269\u6570\u636E\uFF0C\u53EA\u662F\u5207\u6362\u5230\u65B0\u5BA0\u7269\u3002\u786E\u5B9A\uFF1F`,
+              t('notify_confirm_hatch_title'),
+              t('notify_confirm_hatch_message', { name: engine.petName }),
             );
             if (!confirmed) {
-              ctx.ui.notify('\u5B75\u5316\u5DF2\u53D6\u6D88', 'info');
+              ctx.ui.notify(t('notify_hatch_cancelled'), 'info');
               return;
             }
           }
@@ -208,7 +237,7 @@ export function registerCommands(
           }
 
           // Pick a random species from imported cache
-          const prng = (await import('./prng.ts')).createPrng(seed + 1);
+          const prng = (await import('./prng.js')).createPrng(seed + 1);
           const picked = prng.pick(available);
           const speciesId = picked.speciesId;
 
@@ -219,20 +248,21 @@ export function registerCommands(
 
           const s = engine.state!;
           const sp = getSpecies(s.bones.species);
-          const shinyMark = s.bones.isShiny ? ' \u2728' : '';
-          const rarityMap: Record<string, string> = {
-            common: '\u666E\u901A', uncommon: '\u7A00\u6709', rare: '\u7CBE\u826F', epic: '\u53F2\u8BD7', legendary: '\u4F20\u8BF4',
-          };
-          const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
+          const shinyMark = s.bones.isShiny ? ' ✨' : '';
+          const rarityLabel = engine.rarityLabel;
 
           ctx.ui.notify(
-            `\u{1F423} \u5B75\u5316\u6210\u529F\uFF01\u6B22\u8FCE "${s.name}"\n` +
-            `${sp.emoji} ${sp.name} \u00B7 ${rarityLabel}${shinyMark} \u00B7 ${engine.stageName}`,
+            `${t('notify_hatch_success', { name: s.name })}\n` +
+            `${sp.emoji} ${sp.name} · ${rarityLabel}${shinyMark} · ${engine.stageName}`,
             'info',
           );
 
           engine.setBubble(getRandomBubble('excited'));
           ctx.ui.setStatus('pet', buildFooterStatus(engine));
+
+          // Ensure overlay is visible and tick timer is running
+          overlayControls?.showOverlay();
+          overlayControls?.startTicking?.();
           break;
         }
 
@@ -240,39 +270,36 @@ export function registerCommands(
         // ---- info ----
         case 'info': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01\u4F7F\u7528 /pets hatch \u968F\u673A\u5B75\u5316\u4E00\u53EA', 'warning');
+            ctx.ui.notify(t('notify_no_pet'), 'warning');
             return;
           }
           const s = engine.state;
           const sp = getSpecies(s.bones.species);
-          const shinyMark = s.bones.isShiny ? '\u2728 ' : '';
-          const genderMark = s.bones.gender === 'male' ? '\u2642' : '\u2640';
-          const rarityMap: Record<string, string> = {
-            common: '\u666E\u901A', uncommon: '\u7A00\u6709', rare: '\u7CBE\u826F', epic: '\u53F2\u8BD7', legendary: '\u4F20\u8BF4',
-          };
-          const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
+          const shinyMark = s.bones.isShiny ? '✨ ' : '';
+          const genderMark = s.bones.gender === 'male' ? t('gender_male') : t('gender_female');
+          const rarityLabel = engine.rarityLabel;
           const stats = s.bones.baseStats;
           const skillInfo = s.unlockedSkills.length > 0
-            ? `\u5DF2\u89E3\u9501: ${s.unlockedSkills.join(', ')}` + (s.equippedSkills.length > 0 ? ` | \u5DF2\u88C5\u5907: ${s.equippedSkills.join(', ')}` : '')
-            : '\u65E0 (\u672A\u89E3\u9501)';
-          const createdDate = new Date(s.createdAt).toLocaleDateString('zh-CN', {
+            ? (t('notify_info_skills', { skills: s.unlockedSkills.join(', ') }) + (s.equippedSkills.length > 0 ? ` | ${t('notify_info_skills', { skills: s.equippedSkills.join(', ') })}` : ''))
+            : t('notify_info_skills', { skills: getLanguage() === 'zh-CN' ? '无（未解锁）' : 'None (unlocked)' });
+          const createdDate = new Date(s.createdAt).toLocaleDateString(getLanguage() === 'zh-CN' ? 'zh-CN' : 'en-US', {
             year: 'numeric', month: '2-digit', day: '2-digit',
           });
 
           ctx.ui.notify(
-            `"${s.name}" \u2014 ${sp.emoji} ${sp.name}\n` +
-            `\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\n` +
-            `${rarityLabel}${shinyMark}${genderMark} \u00B7 ${sp.domain}\n` +
-            `Lv.${s.level} ${engine.stageName} \u00B7 \u2B50${s.xp}XP\n` +
-            `H:${s.needs.hunger}  E:${s.needs.energy}  \u{1F60A}:${s.needs.happiness}  ${engine.emotionEmoji}\n` +
-            `\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\n` +
-            `debug:${stats.debugging}  pat:${stats.patience}  chaos:${stats.chaos}\n` +
-            `wisdom:${stats.wisdom}  snark:${stats.snark}\n` +
-            `\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\n` +
-            `\u4E2A\u6027: ${sp.description}\n` +
-            `\u6280\u80FD: ${skillInfo}\n` +
-            `\u4F1A\u8BDD:${s.totalSessions} \u9519\u8BEF:${s.totalErrors} \u6D4B\u8BD5:${s.totalTestsPassed}\n` +
-            `\u521B\u5EFA\u4E8E: ${createdDate}`,
+            t('notify_info_header', { name: s.name, emoji: sp.emoji, species: sp.name }) + '\n' +
+            t('notify_info_divider') + '\n' +
+            t('notify_info_rarity', { rarity: rarityLabel, shiny: shinyMark, gender: genderMark, domain: sp.domain }) + '\n' +
+            t('notify_info_level', { level: String(s.level), stage: engine.stageName, xp: String(s.xp) }) + '\n' +
+            t('notify_info_needs', { hunger: String(s.needs.hunger), energy: String(s.needs.energy), happiness: String(s.needs.happiness), emotion: engine.emotionEmoji }) + '\n' +
+            t('notify_info_divider') + '\n' +
+            t('notify_info_stats', { debugging: String(stats.debugging), patience: String(stats.patience), chaos: String(stats.chaos) }) + '\n' +
+            t('notify_info_wisdom', { wisdom: String(stats.wisdom), snark: String(stats.snark) }) + '\n' +
+            t('notify_info_divider') + '\n' +
+            t('notify_info_personality', { description: sp.description }) + '\n' +
+            `${t('notify_info_skills', { skills: skillInfo })}\n` +
+            t('notify_info_stats_line', { sessions: String(s.totalSessions), errors: String(s.totalErrors), tests: String(s.totalTestsPassed) }) + '\n' +
+            t('notify_info_created', { date: createdDate }),
             'info',
           );
           break;
@@ -281,7 +308,7 @@ export function registerCommands(
         // ---- pet (pet) ----
         case 'pet': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
+            ctx.ui.notify(t('notify_no_pet_warn'), 'warning');
             return;
           }
           const beforeHappiness = engine.state.needs.happiness;
@@ -290,11 +317,11 @@ export function registerCommands(
           const actualGain = afterHappiness - beforeHappiness;
           const xpAmount = xpFromPetCommand();
           engine.addXp(xpAmount);
-          engine.setBubble('\u55EF\uFF5E\u597D\u8212\u670D\uFF5E');
+          engine.setBubble(t('event_feel_good'));
           setAnimationOverride('play', 2000);
           ctx.ui.setStatus('pet', buildFooterStatus(engine));
           ctx.ui.notify(
-            `\u4F60\u6478\u4E86\u6478\u5BA0\u7269\uFF0C\u5B83\u5F88\u5F00\u5FC3\uFF01 +${actualGain}\u{1F60A} (${beforeHappiness}\u2192${afterHappiness}) +${xpAmount}XP`,
+            t('notify_pet_action', { gain: String(actualGain), before: String(beforeHappiness), after: String(afterHappiness), xp: String(xpAmount) }),
             'info',
           );
           break;
@@ -303,7 +330,7 @@ export function registerCommands(
         // ---- feed ----
         case 'feed': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
+            ctx.ui.notify(t('notify_no_pet_warn'), 'warning');
             return;
           }
           const beforeHunger = engine.state.needs.hunger;
@@ -312,10 +339,10 @@ export function registerCommands(
           const actualGain = afterHunger - beforeHunger;
           const xpAmount = xpFromFeedCommand();
           engine.addXp(xpAmount);
-          engine.setBubble('\u597D\u5403\uFF01\u8C22\u8C22\uFF5E');
+          engine.setBubble(t('event_tasty'));
           ctx.ui.setStatus('pet', buildFooterStatus(engine));
           ctx.ui.notify(
-            `\u5BA0\u7269\u5403\u9971\u4E86\uFF01 +${actualGain}H (${beforeHunger}\u2192${afterHunger}) +${xpAmount}XP`,
+            t('notify_feed_action', { gain: String(actualGain), before: String(beforeHunger), after: String(afterHunger), xp: String(xpAmount) }),
             'info',
           );
           break;
@@ -326,46 +353,46 @@ export function registerCommands(
         // ---- rename (primary) ----
         case 'rename': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
+            ctx.ui.notify(t('notify_no_pet_warn'), 'warning');
             return;
           }
           const newName = parts.slice(1).join(' ');
           if (!newName) {
-            ctx.ui.notify('\u8BF7\u63D0\u4F9B\u65B0\u540D\u79F0\uFF1A/pets rename <\u65B0\u540D\u5B57>', 'warning');
+            ctx.ui.notify(t('notify_need_name'), 'warning');
             return;
           }
           const sanitized = newName.replace(/[\x00-\x1F\x7F]/g, '').trim();
           if (!sanitized || sanitized.length > 32) {
-            ctx.ui.notify('\u540D\u79F0\u957F\u5EA6\u9700\u5728 1-32 \u5B57\u7B26\u4E4B\u95F4\uFF0C\u4E14\u4E0D\u80FD\u5305\u542B\u63A7\u5236\u5B57\u7B26', 'warning');
+            ctx.ui.notify(t('notify_name_length'), 'warning');
             return;
           }
           engine.state!.name = sanitized;
-          engine.setBubble(`\u73B0\u5728\u6211\u53EB ${sanitized}\uFF01`);
+          engine.setBubble(t('event_rename', { name: sanitized }));
           await engine.save();
           ctx.ui.setStatus('pet', buildFooterStatus(engine));
-          ctx.ui.notify(`\u5BA0\u7269\u5DF2\u91CD\u547D\u540D\u4E3A "${sanitized}"`, 'info');
+          ctx.ui.notify(t('notify_renamed', { name: sanitized }), 'info');
           break;
         }
 
         // ---- ui (hide/show overlay) ----
         case 'ui': {
           const isVisible = overlayControls?.toggleOverlay() ?? false;
-          ctx.ui.notify(isVisible ? '\u{1F43E} \u5BA0\u7269\u9762\u677F\u5DF2\u663E\u793A' : '\u{1F648} \u5BA0\u7269\u9762\u677F\u5DF2\u9690\u85CF', 'info');
+          ctx.ui.notify(isVisible ? t('notify_ui_shown') : t('notify_ui_hidden'), 'info');
           break;
         }
 
         // ---- release ----
         case 'release': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
+            ctx.ui.notify(t('notify_no_pet_warn'), 'warning');
             return;
           }
           const confirmed = await ctx.ui.confirm(
-            '\u653E\u751F\u5BA0\u7269',
-            `\u786E\u5B9A\u8981\u653E\u751F "${engine.petName}" \u5417\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\uFF01`,
+            t('notify_release_title'),
+            t('notify_release_message', { name: engine.petName }),
           );
           if (!confirmed) {
-            ctx.ui.notify('\u653E\u751F\u5DF2\u53D6\u6D88', 'info');
+            ctx.ui.notify(t('notify_release_cancelled'), 'info');
             return;
           }
           const name = engine.petName;
@@ -373,7 +400,7 @@ export function registerCommands(
           const sp = getSpecies(s.bones.species);
           await engine.release();
           ctx.ui.setStatus('pet', undefined);
-          ctx.ui.notify(`"${name}" (${sp.emoji} ${sp.name} Lv.${s.level}) \u5DF2\u653E\u751F\u3002\u4E00\u8DEF\u8D70\u597D...`, 'info');
+          ctx.ui.notify(t('notify_released', { name, emoji: sp.emoji, species: sp.name, level: String(s.level) }), 'info');
           break;
         }
 
@@ -381,33 +408,33 @@ export function registerCommands(
         case 'delete': {
           const speciesId = parts[1];
           if (!speciesId) {
-            ctx.ui.notify('请指定物种 ID：/pets delete <speciesId>', 'warning');
+            ctx.ui.notify(t('notify_delete_specify'), 'warning');
             return;
           }
 
           if (!hasCache(speciesId)) {
-            ctx.ui.notify(`未找到物种 "${speciesId}" 的缓存文件。`, 'warning');
+            ctx.ui.notify(t('notify_delete_not_found', { speciesId }), 'warning');
             return;
           }
 
           const existing = await engine.getExistingPetForSpecies(speciesId);
           if (existing) {
-            ctx.ui.notify(`无法删除物种 "${speciesId}"：当前有宠物正在使用该物种（${existing.name}）。请先放生该宠物。`, 'warning');
+            ctx.ui.notify(t('notify_delete_in_use', { speciesId, name: existing.name }), 'warning');
             return;
           }
 
           const confirmed = await ctx.ui.confirm(
-            '删除物种',
-            `确定要删除物种 "${speciesId}" 的缓存文件吗？此操作不可撤销！`,
+            t('notify_delete_confirm_title'),
+            t('notify_delete_confirm_message', { speciesId }),
           );
           if (!confirmed) {
-            ctx.ui.notify('删除已取消', 'info');
+            ctx.ui.notify(t('notify_delete_cancelled'), 'info');
             return;
           }
 
           await invalidateCache(speciesId);
           unloadPet(speciesId);
-          ctx.ui.notify(`物种 "${speciesId}" 的缓存已删除。`, 'info');
+          ctx.ui.notify(t('notify_deleted', { speciesId }), 'info');
           return;
         }
 
@@ -420,31 +447,31 @@ export function registerCommands(
             if (engine.hasPet && engine.state) {
               speciesArg = engine.state.bones.species;
               const confirmed = await ctx.ui.confirm(
-                '\u6E05\u7406\u7F13\u5B58',
-                `\u5C06\u6E05\u9664\u5F53\u524D\u5BA0\u7269 (${engine.petName}) \u7684\u56FE\u50CF\u7F13\u5B58\u3002\u5BA0\u7269\u6570\u636E\u4F1A\u4FDD\u7559\uFF0C\u4F46\u56FE\u50CF\u9700\u8981\u91CD\u65B0\u5BFC\u5165\u3002\u786E\u5B9A\uFF1F`,
+                t('notify_clean_title'),
+                t('notify_clean_confirm', { name: engine.petName }),
               );
               if (!confirmed) {
-                ctx.ui.notify('\u6E05\u7406\u5DF2\u53D6\u6D88', 'info');
+                ctx.ui.notify(t('notify_clean_cancelled'), 'info');
                 return;
               }
             } else {
-              ctx.ui.notify('\u6CA1\u6709\u6307\u5B9A\u7269\u79CD\u3002\u4F7F\u7528 /pets clean <speciesId> \u6E05\u7406\u6307\u5B9A\u7269\u79CD\u7F13\u5B58\uFF0C\u6216\u5148\u5B75\u5316/\u5BFC\u5165\u4E00\u53EA\u5BA0\u7269\u540E\u4F7F\u7528 /pets clean \u6E05\u7406\u5F53\u524D\u5BA0\u7269\u3002', 'warning');
+              ctx.ui.notify(t('notify_clean_no_species'), 'warning');
               return;
             }
           }
 
           if (!hasCache(speciesArg)) {
-            ctx.ui.notify(`\u672A\u627E\u5230\u7269\u79CD "${speciesArg}" \u7684\u56FE\u50CF\u7F13\u5B58`, 'warning');
+            ctx.ui.notify(t('notify_clean_not_found', { speciesId: speciesArg }), 'warning');
             return;
           }
 
           if (engine.hasPet && engine.state && engine.state.bones.species === speciesArg && parts[1]) {
             const confirmed = await ctx.ui.confirm(
-              '\u6E05\u7406\u7F13\u5B58',
-              `"${speciesArg}" \u662F\u5F53\u524D\u5BA0\u7269\u7684\u7269\u79CD\u3002\u6E05\u7406\u540E\u56FE\u50CF\u5C06\u6D88\u5931\uFF0C\u4F46\u5BA0\u7269\u6570\u636E\u4F1A\u4FDD\u7559\u3002\u786E\u5B9A\uFF1F`,
+              t('notify_clean_title'),
+              t('notify_clean_confirm_species', { speciesId: speciesArg }),
             );
             if (!confirmed) {
-              ctx.ui.notify('\u6E05\u7406\u5DF2\u53D6\u6D88', 'info');
+              ctx.ui.notify(t('notify_clean_cancelled'), 'info');
               return;
             }
           }
@@ -452,9 +479,9 @@ export function registerCommands(
           try {
             await invalidateCache(speciesArg);
             unloadPet(speciesArg);
-            ctx.ui.notify(`\u2728 "${speciesArg}" \u7684\u56FE\u50CF\u7F13\u5B58\u5DF2\u6E05\u9664`, 'info');
+            ctx.ui.notify(t('notify_clean_done', { speciesId: speciesArg }), 'info');
           } catch (err) {
-            ctx.ui.notify('\u6E05\u7406\u5931\u8D25: ' + (err as Error).message, 'error');
+            ctx.ui.notify(t('notify_clean_failed', { message: (err as Error).message }), 'error');
           }
           return;
         }
@@ -462,20 +489,21 @@ export function registerCommands(
         // ---- help ----
         case 'help': {
           ctx.ui.notify(
-            '/pets 宠物系统命令\n' +
-            '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n' +
-            'hatch [seed]     从已导入物种中随机孵化新宠物\n' +
-            'info             查看宠物详细档案\n' +
-            'list             列出已孵化宠物并交互切换\n' +
-            'pet              抚摸宠物（+快乐 +XP）\n' +
-            'feed             喂食宠物（+饥饿 +XP）\n' +
-            'rename <name>    给宠物改名\n' +
-            'ui               显示/\u9690藏宠物面板\n' +
-            'release          放生当前宠物（不可撤销）\n' +
-            'import <path>    导入精灵图宠物（仅添加物种，不孵化）\n' +
-            'clean [species]  清理图像缓存（无参时清理当前宠物）\n' +
-            'delete <species>  删除指定物种文件（无宠物使用时）\n' +
-            'help             显示本帮助',
+            t('help_title') + '\n' +
+            t('help_separator') + '\n' +
+            t('help_hatch') + '\n' +
+            t('help_info') + '\n' +
+            t('help_list') + '\n' +
+            t('help_pet') + '\n' +
+            t('help_feed') + '\n' +
+            t('help_rename') + '\n' +
+            t('help_ui') + '\n' +
+            t('help_release') + '\n' +
+            t('help_import') + '\n' +
+            t('help_clean') + '\n' +
+            t('help_delete') + '\n' +
+            t('help_lang') + '\n' +
+            t('help_help'),
             'info',
           );
           break;
@@ -487,13 +515,19 @@ export function registerCommands(
             const s = engine.state;
             const sp = getSpecies(s.bones.species);
             ctx.ui.notify(
-              `\u672A\u77E5\u5B50\u547D\u4EE4 "${sub}"\u3002\u8F93\u5165 /pets help \u67E5\u770B\u5168\u90E8\u547D\u4EE4\u3002\n` +
-              `\u5F53\u524D\u5BA0\u7269: "${s.name}" ${sp.emoji} Lv.${s.level} ${engine.stageName} ${engine.emotionEmoji}`,
+              t('notify_unknown_cmd_with_pet', {
+                sub,
+                name: s.name,
+                emoji: sp.emoji,
+                level: String(s.level),
+                stage: engine.stageName,
+                emotion: engine.emotionEmoji,
+              }),
               'warning',
             );
           } else {
             ctx.ui.notify(
-              `\u672A\u77E5\u5B50\u547D\u4EE4 "${sub}"\u3002\u4F7F\u7528 /pets hatch \u5B75\u5316\u5BA0\u7269\uFF0C\u6216 /pets help \u67E5\u770B\u5168\u90E8\u547D\u4EE4\u3002`,
+              t('notify_unknown_cmd_no_pet', { sub }),
               'warning',
             );
           }

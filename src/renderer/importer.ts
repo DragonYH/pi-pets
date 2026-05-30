@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { convertSpritesheet, type ConversionResult } from './converter.ts';
-import { renderAnsiFrames } from './renderer.ts';
-import { renderTextFrames } from './renderer.ts';
-import { saveCache, CACHE_VERSION } from './cache.ts';
-import type { CacheEntry, AnimationState } from '../types.ts';
+import { convertSpritesheet, type ConversionResult } from './converter.js';
+import { renderAnsiFrames } from './renderer.js';
+import { renderTextFrames } from './renderer.js';
+import { saveCache, CACHE_VERSION } from './cache.js';
+import type { CacheEntry, AnimationState } from '../types.js';
 
 // CACHE_VERSION defined in cache.ts, imported above
 
