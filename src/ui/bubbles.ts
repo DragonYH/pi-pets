@@ -55,6 +55,14 @@ const BUBBLES: Record<EmotionState, string[]> = {
     '状态不太好...',
     '好想休息...',
   ],
+  working: [
+    '正在写代码...',
+    '让我想想这个设计...',
+    '查一下文档...',
+    '这个 bug 有点意思...',
+    '专注工作模式！',
+    '正在努力搬砖...',
+  ],
 };
 
 export function getRandomBubble(state: EmotionState): string {

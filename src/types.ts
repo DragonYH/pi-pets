@@ -1,18 +1,6 @@
 // ===== Species & Rarity =====
 
-export type SpeciesId =
-  | 'pyrofox'
-  | 'rustacean'
-  | 'pythonidae'
-  | 'gopher'
-  | 'typewhale'
-  | 'bashbat'
-  | 'kotlincat'
-  | 'javaroo'
-  | 'lisplizard'
-  | 'queryquail'
-  | 'hexhound'
-  | 'pixelpanda';
+export type SpeciesId = string;
 
 export type RarityTier = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
@@ -25,6 +13,7 @@ export type EmotionState =
   | 'tired'
   | 'hungry'
   | 'frustrated'
+  | 'working'
   | 'sick';
 
 export type Gender = 'male' | 'female';

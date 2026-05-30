@@ -1,6 +1,6 @@
 import type { PetEngine } from '../pet_instance.ts';
 import { stageDisplayName } from '../evolution.ts';
-import { SPECIES_MAP } from '../species.ts';
+import { getSpecies } from '../species.ts';
 import { getFrame, getCurrentAnimation } from '../renderer/art-provider.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.ts';
 
@@ -51,7 +51,7 @@ export function buildWidget(
 
   // Info line 1: name(species) left, Lv.x stageLabel right
   const shinyMark = s.bones.isShiny ? '✨' : '';
-  const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
+  const speciesName = getSpecies(s.bones.species).name;
   const stageLabel = stageDisplayName(s.stage);
   const leftStr = `${shinyMark}${s.name}(${speciesName})`;
   const rightStr = `Lv.${s.level} ${stageLabel}`;

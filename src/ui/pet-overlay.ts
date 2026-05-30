@@ -7,7 +7,7 @@ import { getFrame, getCurrentAnimation, getFrameCount } from '../renderer/art-pr
 import { getRandomBubble } from './bubbles.ts';
 import type { EmotionState } from '../types.ts';
 import { stageDisplayName } from '../evolution.ts';
-import { SPECIES_MAP } from '../species.ts';
+import { getSpecies } from '../species.ts';
 import { visualLen, visualPadStart, visualPadEnd, visualClamp, visualWrap } from './visual-utils.ts';
 
 import { CONFIG } from '../config.ts';
@@ -82,7 +82,7 @@ export class PetOverlayComponent implements Component {
 
     // Info line: name(species) left, Lv.x stageLabel right
     const shinyMark = s.bones.isShiny ? '✨' : '';
-    const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
+    const speciesName = getSpecies(s.bones.species).name;
     const stageLabel = stageDisplayName(s.stage);
     const leftStr = `${shinyMark}${s.name}(${speciesName})`;
     const rightStr = `Lv.${s.level} ${stageLabel}`;
@@ -134,7 +134,7 @@ export class PetOverlayComponent implements Component {
 
     // Info line: name(species) left, Lv.x stageLabel right
     const shinyMark = s.bones.isShiny ? '✨' : '';
-    const speciesName = SPECIES_MAP[s.bones.species]?.name ?? s.bones.species;
+    const speciesName = getSpecies(s.bones.species).name;
     const stageLabel = stageDisplayName(s.stage);
     const leftStr = `${shinyMark}${s.name}(${speciesName})`;
     const rightStr = `Lv.${s.level} ${stageLabel}`;

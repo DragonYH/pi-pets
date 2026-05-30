@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import type { PetEngine } from './pet_instance.ts';
+import type { PetState } from './types.ts';
 import { buildFooterStatus } from './ui/footer.ts';
 import { getRandomBubble } from './ui/bubbles.ts';
 import { hashString } from './prng.ts';
@@ -23,21 +24,21 @@ export function registerCommands(
   // ===== Commands =====
 
   pi.registerCommand('pets', {
-    description: '宠物系统 - 查看/饲养你的编码伙伴',
+    description: '\u5BA0\u7269\u7CFB\u7EDF - \u67E5\u770B/\u9972\u517B\u4F60\u7684\u7F16\u7801\u4F19\u4F34',
     getArgumentCompletions: (prefix: string) => {
       const subcommands: Array<{ value: string; label: string; description: string }> = [
-        { value: 'hatch',   label: 'hatch',   description: '孵化一只新宠物' },
-        { value: 'status',  label: 'status',  description: '显示宠物面板' },
-        { value: 'info',    label: 'info',    description: '查看宠物详细档案' },
-        { value: 'list',    label: 'list',    description: '列出已导入的宠物' },
-        { value: 'pet',     label: 'pet',     description: '抚摸宠物，它会很开心' },
-        { value: 'feed',    label: 'feed',    description: '喂食宠物' },
-        { value: 'rename',  label: 'rename',  description: '给宠物改名' },
-        { value: 'toggle',  label: 'toggle',  description: '显示/隐藏宠物面板' },
-        { value: 'release', label: 'release', description: '放生当前宠物（不可撤销）' },
-        { value: 'import',  label: 'import',  description: '导入精灵图宠物' },
-        { value: 'clean',   label: 'clean',   description: '清除指定宠物的图像缓存' },
-        { value: 'help',    label: 'help',    description: '显示全部命令帮助' },
+        { value: 'hatch',   label: 'hatch',   description: '\u968F\u673A\u5B75\u5316\u4E00\u53EA\u65B0\u5BA0\u7269' },
+        { value: 'status',  label: 'status',  description: '\u663E\u793A\u5BA0\u7269\u9762\u677F' },
+        { value: 'info',    label: 'info',    description: '\u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848' },
+        { value: 'list',    label: 'list',    description: '\u5217\u51FA\u5DF2\u5BFC\u5165\u7684\u7269\u79CD\u5E76\u9009\u62E9\u5BA0\u7269' },
+        { value: 'pet',     label: 'pet',     description: '\u629A\u6478\u5BA0\u7269\uFF0C\u5B83\u4F1A\u5F88\u5F00\u5FC3' },
+        { value: 'feed',    label: 'feed',    description: '\u5582\u98DF\u5BA0\u7269' },
+        { value: 'rename',  label: 'rename',  description: '\u7ED9\u5BA0\u7269\u6539\u540D' },
+        { value: 'toggle',  label: 'toggle',  description: '\u663E\u793A/\u9690\u85CF\u5BA0\u7269\u9762\u677F' },
+        { value: 'release', label: 'release', description: '\u653E\u751F\u5F53\u524D\u5BA0\u7269\uFF08\u4E0D\u53EF\u64A4\u9500\uFF09' },
+        { value: 'import',  label: 'import',  description: '\u5BFC\u5165\u7CBE\u7075\u56FE\u5BA0\u7269' },
+        { value: 'clean',   label: 'clean',   description: '\u6E05\u9664\u6307\u5B9A\u5BA0\u7269\u7684\u56FE\u50CF\u7F13\u5B58' },
+        { value: 'help',    label: 'help',    description: '\u663E\u793A\u5168\u90E8\u547D\u4EE4\u5E2E\u52A9' },
       ];
       return subcommands
         .filter((c) => c.value.startsWith(prefix))
@@ -52,30 +53,30 @@ export function registerCommands(
         case '': {
           if (!engine.hasPet) {
             ctx.ui.notify(
-              '还没有宠物！使用 /pets hatch [seed] 孵化一只，或 /pets import <path> 导入精灵图宠物。输入 /pets help 查看全部命令。',
+              '\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01\u4F7F\u7528 /pets hatch \u968F\u673A\u5B75\u5316\u4E00\u53EA\uFF0C\u6216 /pets import <path> \u5BFC\u5165\u7269\u79CD\u3002\u8F93\u5165 /pets help \u67E5\u770B\u5168\u90E8\u547D\u4EE4\u3002',
               'info',
             );
             return;
           }
           const s = engine.state!;
           const sp = getSpecies(s.bones.species);
-          const shinyMark = s.bones.isShiny ? ' ✨' : '';
-          const genderMark = s.bones.gender === 'male' ? '♂' : '♀';
+          const shinyMark = s.bones.isShiny ? ' \u2728' : '';
+          const genderMark = s.bones.gender === 'male' ? '\u2642' : '\u2640';
           ctx.ui.notify(
-            `"${s.name}" — ${sp.emoji} ${sp.name} (${engine.rarityLabel}${shinyMark} ${genderMark})\n` +
-            `Lv.${s.level} ${engine.stageName} · ⭐${s.xp}XP ${engine.emotionEmoji}\n` +
-            `H:${s.needs.hunger}/100  E:${s.needs.energy}/100  😊:${s.needs.happiness}/100\n` +
-            `输入 /pets info 查看详细档案，/pets help 查看全部命令`,
+            `"${s.name}" \u2014 ${sp.emoji} ${sp.name} (${engine.rarityLabel}${shinyMark} ${genderMark})\n` +
+            `Lv.${s.level} ${engine.stageName} \u2B50${s.xp}XP ${engine.emotionEmoji}\n` +
+            `H:${s.needs.hunger}/100  E:${s.needs.energy}/100  \u{1F60A}:${s.needs.happiness}/100\n` +
+            `\u8F93\u5165 /pets info \u67E5\u770B\u8BE6\u7EC6\u6863\u6848\uFF0C/pets help \u67E5\u770B\u5168\u90E8\u547D\u4EE4`,
             'info',
           );
           break;
         }
 
-        // ---- import ----
+        // ---- import (only adds species, does NOT hatch) ----
         case 'import': {
           const pathArg = parts[1];
           if (!pathArg) {
-            ctx.ui.notify('请指定宠物目录路径：/pets import <path>', 'warning');
+            ctx.ui.notify('\u8BF7\u6307\u5B9A\u5BA0\u7269\u76EE\u5F55\u8DEF\u5F84\uFF1A/pets import <path>', 'warning');
             return;
           }
           try {
@@ -86,57 +87,231 @@ export function registerCommands(
               await reloadPet(result.speciesId);
               engine.setBubble(getRandomBubble('excited'));
               ctx.ui.setStatus('pet', buildFooterStatus(engine));
-              ctx.ui.notify(`💄 ${result.displayName} 的外观已更新！`, 'info');
+              ctx.ui.notify(`\u{1F484} ${result.displayName} \u7684\u5916\u89C2\u5DF2\u66F4\u65B0\uFF01`, 'info');
               return;
             }
 
-            // Release current pet if any
-            if (engine.hasPet) {
-              await engine.release();
-              ctx.ui.setStatus('pet', undefined);
-            }
-
-            // Hatch the imported pet
-            const seed = hashString(`imported-${result.speciesId}-${Date.now()}`);
-            await engine.hatch(seed, result.speciesId);
-
-            // Preload pet frames into memory
+            // Just imported — preload frames
             await loadPet(result.speciesId);
 
-            engine.setBubble(getRandomBubble('excited'));
+            engine.setBubble('\u{1F4E6} \u65B0\u7269\u79CD\u5DF2\u52A0\u5165\u56FE\u9274\uFF01');
             ctx.ui.setStatus('pet', buildFooterStatus(engine));
-            ctx.ui.notify('🐣 导入成功！欢迎 ' + engine.petName, 'info');
+            ctx.ui.notify(
+              `\u{1F4E6} \u5DF2\u5BFC\u5165 "${result.displayName}" (${result.speciesId})\n` +
+              `\u4F7F\u7528 /pets list \u9009\u62E9\u5B75\u5316\u8BE5\u7269\u79CD`,
+              'info',
+            );
           } catch (err) {
-            ctx.ui.notify('导入失败: ' + (err as Error).message, 'error');
+            ctx.ui.notify('\u5BFC\u5165\u5931\u8D25: ' + (err as Error).message, 'error');
           }
           return;
         }
 
-        // ---- list ----
+        // ---- list (interactive selection) ----
         case 'list': {
           try {
             const cached = await listCachedSpecies();
             if (cached.length === 0) {
-              ctx.ui.notify('还没有导入过宠物。使用 /pets import <path> 导入一只', 'info');
+              ctx.ui.notify(
+                '\u8FD8\u6CA1\u6709\u5BFC\u5165\u8FC7\u5BA0\u7269\u3002\u4F7F\u7528 /pets import <path> \u5BFC\u5165\u4E00\u4E2A\u5BA0\u7269\u7269\u79CD\u3002',
+                'info',
+              );
               return;
             }
-            const lines = cached.map((c) => `${c.emoji} ${c.displayName} (${c.speciesId})`);
-            ctx.ui.notify('已导入的宠物:\n' + lines.join('\n'), 'info');
+
+            // Check which species already have a pet file on disk
+            const petForSpecies: Record<string, PetState | null> = {};
+            const currentSpeciesId = engine.hasPet ? engine.state!.bones.species : null;
+
+            for (const c of cached) {
+              petForSpecies[c.speciesId] = await engine.getExistingPetForSpecies(c.speciesId);
+            }
+
+            // Build selection items
+            const items = cached.map((c) => {
+              const existingPet = petForSpecies[c.speciesId];
+              const hasExisting = existingPet !== null;
+              const isCurrent = c.speciesId === currentSpeciesId;
+              const label = isCurrent
+                ? `\u{1F4A1} ${c.emoji} ${c.displayName} (${c.speciesId}) \u2190 \u5F53\u524D`
+                : hasExisting
+                  ? `${c.emoji} ${c.displayName} (${c.speciesId}) \u2014 \u5DF2\u5B75\u5316 Lv.${existingPet!.level}`
+                  : `${c.emoji} ${c.displayName} (${c.speciesId})`;
+
+              return {
+                speciesId: c.speciesId,
+                existingPet,
+                label,
+                isCurrent,
+              };
+            });
+
+            // Sort: current first, then by name
+            items.sort((a, b) => {
+              if (a.isCurrent) return -1;
+              if (b.isCurrent) return 1;
+              return a.speciesId.localeCompare(b.speciesId);
+            });
+
+            // Interactive selection via ctx.ui.custom
+            const selected = await ctx.ui.custom<typeof items[number] | null>(
+              (tui, theme, keybindings, done) => {
+                let selectedIndex = items.findIndex((i) => i.isCurrent);
+                if (selectedIndex === -1) selectedIndex = 0;
+
+                const fgColor = (theme?.foregroundColor as string) || '#ffffff';
+                const bgColor = (theme?.backgroundColor as string) || '#1a1b26';
+                const accentColor = (theme?.accentColor as string) || '#7aa2f7';
+                const dimColor = (theme?.dimColor as string) || '#565f89';
+
+                // Transparent line function
+                const tr = (w: number, segments: Array<{ text: string; fg?: string; bg?: string }>): string => {
+                  let line = '';
+                  for (const seg of segments) {
+                    const fg = seg.fg || fgColor;
+                    const bg = seg.bg || 'transparent';
+                    line += `{${fg}-${bg}}${seg.text}{/${fg}-${bg}}`;
+                  }
+                  // Pad with spaces for full width
+                  const visibleLen = segments.reduce((s, seg) => s + seg.text.length, 0);
+                  if (visibleLen < w) {
+                    line += `{${fgColor}-transparent}${' '.repeat(w - visibleLen)}{/${fgColor}-transparent}`;
+                  }
+                  return line;
+                };
+
+                return {
+                  render(width: number) {
+                    const lines: string[] = [];
+
+                    // Title
+                    lines.push(tr(width, [
+                      { text: ' \u5BA0\u7269\u5217\u8868 \u2014 \u2191/\u2193 \u9009\u62E9  \u23CE \u786E\u8BA4  Esc \u53D6\u6D88', fg: accentColor },
+                    ]));
+                    lines.push(tr(width, [{ text: '', fg: dimColor }]));
+
+                    for (let i = 0; i < items.length; i++) {
+                      const item = items[i];
+                      const isSelected = i === selectedIndex;
+                      const prefix = isSelected ? '\u25B6 ' : '  ';
+                      const label = item.label;
+
+                      if (isSelected) {
+                        lines.push(tr(width, [
+                          { text: `${prefix}${label}`, fg: bgColor, bg: accentColor },
+                        ]));
+                      } else {
+                        lines.push(tr(width, [
+                          { text: `${prefix}${label}`, fg: fgColor },
+                        ]));
+                      }
+                    }
+
+                    // Bottom hint
+                    lines.push(tr(width, [{ text: '', fg: dimColor }]));
+                    return lines;
+                  },
+                  invalidate() {
+                    // no-op: render is stateless
+                  },
+                  dispose() {
+                    // cleanup
+                  },
+                  handleInput(data: string) {
+                    if (data === '\u001b[A' || data === 'k') {
+                      // Up arrow or k
+                      selectedIndex = Math.max(0, selectedIndex - 1);
+                      tui?.requestRender();
+                    } else if (data === '\u001b[B' || data === 'j') {
+                      // Down arrow or j
+                      selectedIndex = Math.min(items.length - 1, selectedIndex + 1);
+                      tui?.requestRender();
+                    } else if (data === '\r' || data === '\n') {
+                      // Enter
+                      done(items[selectedIndex]);
+                    } else if (data === '\u001b' || data === '\u0003') {
+                      // Escape or Ctrl+C
+                      done(null);
+                    }
+                  },
+                };
+              },
+              { overlay: true, overlayOptions: { title: '\u9009\u62E9\u5BA0\u7269' } },
+            );
+
+            if (!selected) {
+              ctx.ui.notify('\u5DF2\u53D6\u6D88', 'info');
+              // Re-show overlay if it was visible
+              if (overlayControls?.isOverlayVisible()) {
+                overlayControls.showOverlay();
+              }
+              return;
+            }
+
+            // User selected an item
+            if (selected.isCurrent) {
+              ctx.ui.notify(`\u5DF2\u662F\u5F53\u524D\u5BA0\u7269\u3002`, 'info');
+              if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
+              return;
+            }
+
+            if (selected.existingPet) {
+              // Switch to existing pet
+              await engine.switchToPet(selected.existingPet);
+              const sp = getSpecies(selected.existingPet.bones.species);
+              ctx.ui.notify(
+                `\u2705 \u5DF2\u5207\u6362\u5230 "${selected.existingPet.name}" (${sp.emoji} ${sp.name} Lv.${selected.existingPet.level})`,
+                'info',
+              );
+              engine.setBubble('\u6211\u56DE\u6765\u5566\uFF01');
+              ctx.ui.setStatus('pet', buildFooterStatus(engine));
+              if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
+            } else {
+              // Hatch a new pet from this species
+              const seed = hashString(`list-select-${selected.speciesId}-${Date.now()}`);
+              await engine.hatch(seed, selected.speciesId);
+              await loadPet(selected.speciesId);
+              const s = engine.state!;
+              const sp = getSpecies(s.bones.species);
+              const shinyMark = s.bones.isShiny ? ' \u2728' : '';
+              const rarityMap: Record<string, string> = {
+                common: '\u666E\u901A', uncommon: '\u7A00\u6709', rare: '\u7CBE\u826F', epic: '\u53F2\u8BD7', legendary: '\u4F20\u8BF4',
+              };
+              const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
+              ctx.ui.notify(
+                `\u{1F423} \u6B22\u8FCE "${s.name}"\uFF01\n` +
+                `${sp.emoji} ${sp.name} \u00B7 ${rarityLabel}${shinyMark} \u00B7 ${engine.stageName}`,
+                'info',
+              );
+              engine.setBubble(getRandomBubble('excited'));
+              ctx.ui.setStatus('pet', buildFooterStatus(engine));
+              if (overlayControls?.isOverlayVisible()) overlayControls.showOverlay();
+            }
           } catch (err) {
-            ctx.ui.notify('列出宠物失败: ' + (err as Error).message, 'error');
+            ctx.ui.notify('\u5217\u51FA\u5BA0\u7269\u5931\u8D25: ' + (err as Error).message, 'error');
           }
           return;
         }
 
         // ---- hatch ----
         case 'hatch': {
+          // Check if there are any imported species
+          const available = await listCachedSpecies();
+          if (available.length === 0) {
+            ctx.ui.notify(
+              '\u8FD8\u6CA1\u6709\u53EF\u5B75\u5316\u7684\u7269\u79CD\u3002\u8BF7\u5148\u4F7F\u7528 /pets import <path> \u5BFC\u5165\u4E00\u4E2A\u5BA0\u7269\u7269\u79CD\u3002',
+              'warning',
+            );
+            return;
+          }
+
           if (engine.hasPet) {
             const confirmed = await ctx.ui.confirm(
-              '已有宠物',
-              `当前有宠物 "${engine.petName}"。孵化新宠物会替换它。确定？`,
+              '\u5DF2\u6709\u5BA0\u7269',
+              `\u5F53\u524D\u6709\u5BA0\u7269 "${engine.petName}"\u3002\u5B75\u5316\u65B0\u5BA0\u7269\u4F1A\u4FDD\u7559\u65E7\u5BA0\u7269\u6570\u636E\uFF0C\u53EA\u662F\u5207\u6362\u5230\u65B0\u5BA0\u7269\u3002\u786E\u5B9A\uFF1F`,
             );
             if (!confirmed) {
-              ctx.ui.notify('孵化已取消', 'info');
+              ctx.ui.notify('\u5B75\u5316\u5DF2\u53D6\u6D88', 'info');
               return;
             }
           }
@@ -150,20 +325,27 @@ export function registerCommands(
             seed = hashString(`pi-pets-${hostname()}-${Date.now()}`);
           }
 
-          await engine.hatch(seed);
+          // Pick a random species from imported cache
+          const prng = (await import('./prng.ts')).createPrng(seed + 1);
+          const picked = prng.pick(available);
+          const speciesId = picked.speciesId;
 
-          // Gather species/rarity/stage info for feedback
+          await engine.hatch(seed, speciesId);
+
+          // Preload frames
+          await loadPet(speciesId);
+
           const s = engine.state!;
           const sp = getSpecies(s.bones.species);
-          const shinyMark = s.bones.isShiny ? ' ✨' : '';
+          const shinyMark = s.bones.isShiny ? ' \u2728' : '';
           const rarityMap: Record<string, string> = {
-            common: '普通', uncommon: '稀有', rare: '精良', epic: '史诗', legendary: '传说',
+            common: '\u666E\u901A', uncommon: '\u7A00\u6709', rare: '\u7CBE\u826F', epic: '\u53F2\u8BD7', legendary: '\u4F20\u8BF4',
           };
           const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
 
           ctx.ui.notify(
-            `🐣 孵化成功！欢迎 "${s.name}"\n` +
-            `${sp.emoji} ${sp.name} · ${rarityLabel}${shinyMark} · ${engine.stageName}`,
+            `\u{1F423} \u5B75\u5316\u6210\u529F\uFF01\u6B22\u8FCE "${s.name}"\n` +
+            `${sp.emoji} ${sp.name} \u00B7 ${rarityLabel}${shinyMark} \u00B7 ${engine.stageName}`,
             'info',
           );
 
@@ -175,50 +357,50 @@ export function registerCommands(
         // ---- status ----
         case 'status': {
           if (!engine.hasPet) {
-            ctx.ui.notify('还没有宠物！使用 /pets hatch 孵化一只', 'warning');
+            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01\u4F7F\u7528 /pets hatch \u968F\u673A\u5B75\u5316\u4E00\u53EA', 'warning');
             return;
           }
           overlayControls?.showOverlay();
-          ctx.ui.notify('宠物面板已显示', 'info');
+          ctx.ui.notify('\u5BA0\u7269\u9762\u677F\u5DF2\u663E\u793A', 'info');
           break;
         }
 
         // ---- info ----
         case 'info': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('还没有宠物！使用 /pets hatch 孵化一只', 'warning');
+            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01\u4F7F\u7528 /pets hatch \u968F\u673A\u5B75\u5316\u4E00\u53EA', 'warning');
             return;
           }
           const s = engine.state;
           const sp = getSpecies(s.bones.species);
-          const shinyMark = s.bones.isShiny ? '✨ ' : '';
-          const genderMark = s.bones.gender === 'male' ? '♂' : '♀';
+          const shinyMark = s.bones.isShiny ? '\u2728 ' : '';
+          const genderMark = s.bones.gender === 'male' ? '\u2642' : '\u2640';
           const rarityMap: Record<string, string> = {
-            common: '普通', uncommon: '稀有', rare: '精良', epic: '史诗', legendary: '传说',
+            common: '\u666E\u901A', uncommon: '\u7A00\u6709', rare: '\u7CBE\u826F', epic: '\u53F2\u8BD7', legendary: '\u4F20\u8BF4',
           };
           const rarityLabel = rarityMap[s.bones.rarity] ?? s.bones.rarity;
           const stats = s.bones.baseStats;
           const skillInfo = s.unlockedSkills.length > 0
-            ? `已解锁: ${s.unlockedSkills.join(', ')}` + (s.equippedSkills.length > 0 ? ` | 已装备: ${s.equippedSkills.join(', ')}` : '')
-            : '无 (未解锁)';
+            ? `\u5DF2\u89E3\u9501: ${s.unlockedSkills.join(', ')}` + (s.equippedSkills.length > 0 ? ` | \u5DF2\u88C5\u5907: ${s.equippedSkills.join(', ')}` : '')
+            : '\u65E0 (\u672A\u89E3\u9501)';
           const createdDate = new Date(s.createdAt).toLocaleDateString('zh-CN', {
             year: 'numeric', month: '2-digit', day: '2-digit',
           });
 
           ctx.ui.notify(
-            `"${s.name}" — ${sp.emoji} ${sp.name}\n` +
-            `┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n` +
-            `${rarityLabel}${shinyMark}${genderMark} · ${sp.domain}\n` +
-            `Lv.${s.level} ${engine.stageName} · ⭐${s.xp}XP\n` +
-            `H:${s.needs.hunger}  E:${s.needs.energy}  😊:${s.needs.happiness}  ${engine.emotionEmoji}\n` +
-            `┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n` +
+            `"${s.name}" \u2014 ${sp.emoji} ${sp.name}\n` +
+            `\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\n` +
+            `${rarityLabel}${shinyMark}${genderMark} \u00B7 ${sp.domain}\n` +
+            `Lv.${s.level} ${engine.stageName} \u00B7 \u2B50${s.xp}XP\n` +
+            `H:${s.needs.hunger}  E:${s.needs.energy}  \u{1F60A}:${s.needs.happiness}  ${engine.emotionEmoji}\n` +
+            `\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\n` +
             `debug:${stats.debugging}  pat:${stats.patience}  chaos:${stats.chaos}\n` +
             `wisdom:${stats.wisdom}  snark:${stats.snark}\n` +
-            `┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n` +
-            `个性: ${sp.description}\n` +
-            `技能: ${skillInfo}\n` +
-            `会话:${s.totalSessions} 错误:${s.totalErrors} 测试:${s.totalTestsPassed}\n` +
-            `创建于: ${createdDate}`,
+            `\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\n` +
+            `\u4E2A\u6027: ${sp.description}\n` +
+            `\u6280\u80FD: ${skillInfo}\n` +
+            `\u4F1A\u8BDD:${s.totalSessions} \u9519\u8BEF:${s.totalErrors} \u6D4B\u8BD5:${s.totalTestsPassed}\n` +
+            `\u521B\u5EFA\u4E8E: ${createdDate}`,
             'info',
           );
           break;
@@ -227,7 +409,7 @@ export function registerCommands(
         // ---- pet (pet) ----
         case 'pet': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('还没有宠物！', 'warning');
+            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
             return;
           }
           const beforeHappiness = engine.state.needs.happiness;
@@ -236,11 +418,11 @@ export function registerCommands(
           const actualGain = afterHappiness - beforeHappiness;
           const xpAmount = xpFromPetCommand();
           engine.addXp(xpAmount);
-          engine.setBubble('嗯～好舒服～');
+          engine.setBubble('\u55EF\uFF5E\u597D\u8212\u670D\uFF5E');
           setAnimationOverride('play', 2000);
           ctx.ui.setStatus('pet', buildFooterStatus(engine));
           ctx.ui.notify(
-            `你摸了摸宠物，它很开心！ +${actualGain}😊 (${beforeHappiness}→${afterHappiness}) +${xpAmount}XP`,
+            `\u4F60\u6478\u4E86\u6478\u5BA0\u7269\uFF0C\u5B83\u5F88\u5F00\u5FC3\uFF01 +${actualGain}\u{1F60A} (${beforeHappiness}\u2192${afterHappiness}) +${xpAmount}XP`,
             'info',
           );
           break;
@@ -249,7 +431,7 @@ export function registerCommands(
         // ---- feed ----
         case 'feed': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('还没有宠物！', 'warning');
+            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
             return;
           }
           const beforeHunger = engine.state.needs.hunger;
@@ -258,10 +440,10 @@ export function registerCommands(
           const actualGain = afterHunger - beforeHunger;
           const xpAmount = xpFromFeedCommand();
           engine.addXp(xpAmount);
-          engine.setBubble('好吃！谢谢～');
+          engine.setBubble('\u597D\u5403\uFF01\u8C22\u8C22\uFF5E');
           ctx.ui.setStatus('pet', buildFooterStatus(engine));
           ctx.ui.notify(
-            `宠物吃饱了！ +${actualGain}H (${beforeHunger}→${afterHunger}) +${xpAmount}XP`,
+            `\u5BA0\u7269\u5403\u9971\u4E86\uFF01 +${actualGain}H (${beforeHunger}\u2192${afterHunger}) +${xpAmount}XP`,
             'info',
           );
           break;
@@ -272,46 +454,46 @@ export function registerCommands(
         // ---- rename (primary) ----
         case 'rename': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('还没有宠物！', 'warning');
+            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
             return;
           }
           const newName = parts.slice(1).join(' ');
           if (!newName) {
-            ctx.ui.notify('请提供新名称：/pets rename <新名字>', 'warning');
+            ctx.ui.notify('\u8BF7\u63D0\u4F9B\u65B0\u540D\u79F0\uFF1A/pets rename <\u65B0\u540D\u5B57>', 'warning');
             return;
           }
           const sanitized = newName.replace(/[\x00-\x1F\x7F]/g, '').trim();
           if (!sanitized || sanitized.length > 32) {
-            ctx.ui.notify('名称长度需在 1-32 字符之间，且不能包含控制字符', 'warning');
+            ctx.ui.notify('\u540D\u79F0\u957F\u5EA6\u9700\u5728 1-32 \u5B57\u7B26\u4E4B\u95F4\uFF0C\u4E14\u4E0D\u80FD\u5305\u542B\u63A7\u5236\u5B57\u7B26', 'warning');
             return;
           }
           engine.state!.name = sanitized;
-          engine.setBubble(`现在我叫 ${sanitized}！`);
+          engine.setBubble(`\u73B0\u5728\u6211\u53EB ${sanitized}\uFF01`);
           await engine.save();
           ctx.ui.setStatus('pet', buildFooterStatus(engine));
-          ctx.ui.notify(`宠物已重命名为 "${sanitized}"`, 'info');
+          ctx.ui.notify(`\u5BA0\u7269\u5DF2\u91CD\u547D\u540D\u4E3A "${sanitized}"`, 'info');
           break;
         }
 
         // ---- toggle (hide/show overlay) ----
         case 'toggle': {
           const isVisible = overlayControls?.toggleOverlay() ?? false;
-          ctx.ui.notify(isVisible ? '🐾 宠物面板已显示' : '🙈 宠物面板已隐藏', 'info');
+          ctx.ui.notify(isVisible ? '\u{1F43E} \u5BA0\u7269\u9762\u677F\u5DF2\u663E\u793A' : '\u{1F648} \u5BA0\u7269\u9762\u677F\u5DF2\u9690\u85CF', 'info');
           break;
         }
 
         // ---- release ----
         case 'release': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('还没有宠物！', 'warning');
+            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
             return;
           }
           const confirmed = await ctx.ui.confirm(
-            '放生宠物',
-            `确定要放生 "${engine.petName}" 吗？此操作不可撤销！`,
+            '\u653E\u751F\u5BA0\u7269',
+            `\u786E\u5B9A\u8981\u653E\u751F "${engine.petName}" \u5417\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\uFF01`,
           );
           if (!confirmed) {
-            ctx.ui.notify('放生已取消', 'info');
+            ctx.ui.notify('\u653E\u751F\u5DF2\u53D6\u6D88', 'info');
             return;
           }
           const name = engine.petName;
@@ -319,22 +501,22 @@ export function registerCommands(
           const sp = getSpecies(s.bones.species);
           await engine.release();
           ctx.ui.setStatus('pet', undefined);
-          ctx.ui.notify(`"${name}" (${sp.emoji} ${sp.name} Lv.${s.level}) 已放生。一路走好...`, 'info');
+          ctx.ui.notify(`"${name}" (${sp.emoji} ${sp.name} Lv.${s.level}) \u5DF2\u653E\u751F\u3002\u4E00\u8DEF\u8D70\u597D...`, 'info');
           break;
         }
 
         // ---- delete (alias: kept for backward compat - strong delete) ----
         case 'delete': {
           if (!engine.hasPet || !engine.state) {
-            ctx.ui.notify('还没有宠物！', 'warning');
+            ctx.ui.notify('\u8FD8\u6CA1\u6709\u5BA0\u7269\uFF01', 'warning');
             return;
           }
           const confirmed = await ctx.ui.confirm(
-            '删除宠物',
-            `确定要删除 "${engine.petName}" 及其所有数据吗？此操作不可撤销！`,
+            '\u5220\u9664\u5BA0\u7269',
+            `\u786E\u5B9A\u8981\u5220\u9664 "${engine.petName}" \u53CA\u5176\u6240\u6709\u6570\u636E\u5417\uFF1F\u6B64\u64CD\u4F5C\u4E0D\u53EF\u64A4\u9500\uFF01`,
           );
           if (!confirmed) {
-            ctx.ui.notify('删除已取消', 'info');
+            ctx.ui.notify('\u5220\u9664\u5DF2\u53D6\u6D88', 'info');
             return;
           }
           const speciesId = engine.state!.bones.species;
@@ -343,7 +525,7 @@ export function registerCommands(
           await invalidateCache(speciesId);
           unloadPet(speciesId);
           ctx.ui.setStatus('pet', undefined);
-          ctx.ui.notify(`"${name}" 及其数据已删除。`, 'info');
+          ctx.ui.notify(`"${name}" \u53CA\u5176\u6570\u636E\u5DF2\u5220\u9664\u3002`, 'info');
           return;
         }
 
@@ -355,35 +537,32 @@ export function registerCommands(
           if (!speciesArg) {
             if (engine.hasPet && engine.state) {
               speciesArg = engine.state.bones.species;
-              // Confirm since this will clear the current pet's art cache
               const confirmed = await ctx.ui.confirm(
-                '清理缓存',
-                `将清除当前宠物 (${engine.petName}) 的图像缓存。宠物数据会保留，但图像需要重新导入。确定？`,
+                '\u6E05\u7406\u7F13\u5B58',
+                `\u5C06\u6E05\u9664\u5F53\u524D\u5BA0\u7269 (${engine.petName}) \u7684\u56FE\u50CF\u7F13\u5B58\u3002\u5BA0\u7269\u6570\u636E\u4F1A\u4FDD\u7559\uFF0C\u4F46\u56FE\u50CF\u9700\u8981\u91CD\u65B0\u5BFC\u5165\u3002\u786E\u5B9A\uFF1F`,
               );
               if (!confirmed) {
-                ctx.ui.notify('清理已取消', 'info');
+                ctx.ui.notify('\u6E05\u7406\u5DF2\u53D6\u6D88', 'info');
                 return;
               }
             } else {
-              ctx.ui.notify('没有指定物种。使用 /pets clean <speciesId> 清理指定物种缓存，或先孵化/导入一只宠物后使用 /pets clean 清理当前宠物。', 'warning');
+              ctx.ui.notify('\u6CA1\u6709\u6307\u5B9A\u7269\u79CD\u3002\u4F7F\u7528 /pets clean <speciesId> \u6E05\u7406\u6307\u5B9A\u7269\u79CD\u7F13\u5B58\uFF0C\u6216\u5148\u5B75\u5316/\u5BFC\u5165\u4E00\u53EA\u5BA0\u7269\u540E\u4F7F\u7528 /pets clean \u6E05\u7406\u5F53\u524D\u5BA0\u7269\u3002', 'warning');
               return;
             }
           }
 
-          // Check cache exists before attempting clean
           if (!hasCache(speciesArg)) {
-            ctx.ui.notify(`未找到物种 "${speciesArg}" 的图像缓存`, 'warning');
+            ctx.ui.notify(`\u672A\u627E\u5230\u7269\u79CD "${speciesArg}" \u7684\u56FE\u50CF\u7F13\u5B58`, 'warning');
             return;
           }
 
-          // If cleaning current pet's species with explicit arg, warn
           if (engine.hasPet && engine.state && engine.state.bones.species === speciesArg && parts[1]) {
             const confirmed = await ctx.ui.confirm(
-              '清理缓存',
-              `"${speciesArg}" 是当前宠物的物种。清理后图像将消失，但宠物数据会保留。确定？`,
+              '\u6E05\u7406\u7F13\u5B58',
+              `"${speciesArg}" \u662F\u5F53\u524D\u5BA0\u7269\u7684\u7269\u79CD\u3002\u6E05\u7406\u540E\u56FE\u50CF\u5C06\u6D88\u5931\uFF0C\u4F46\u5BA0\u7269\u6570\u636E\u4F1A\u4FDD\u7559\u3002\u786E\u5B9A\uFF1F`,
             );
             if (!confirmed) {
-              ctx.ui.notify('清理已取消', 'info');
+              ctx.ui.notify('\u6E05\u7406\u5DF2\u53D6\u6D88', 'info');
               return;
             }
           }
@@ -391,9 +570,9 @@ export function registerCommands(
           try {
             await invalidateCache(speciesArg);
             unloadPet(speciesArg);
-            ctx.ui.notify(`✨ "${speciesArg}" 的图像缓存已清除`, 'info');
+            ctx.ui.notify(`\u2728 "${speciesArg}" \u7684\u56FE\u50CF\u7F13\u5B58\u5DF2\u6E05\u9664`, 'info');
           } catch (err) {
-            ctx.ui.notify('清理失败: ' + (err as Error).message, 'error');
+            ctx.ui.notify('\u6E05\u7406\u5931\u8D25: ' + (err as Error).message, 'error');
           }
           return;
         }
@@ -401,20 +580,20 @@ export function registerCommands(
         // ---- help ----
         case 'help': {
           ctx.ui.notify(
-            '/pets 宠物系统命令\n' +
-            '┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈\n' +
-            'hatch [seed]     孵化新宠物（可选 seed）\n' +
-            'status           显示宠物面板（全屏 widget）\n' +
-            'info             查看宠物详细档案\n' +
-            'list             列出已导入的宠物\n' +
-            'pet              抚摸宠物（+快乐 +XP）\n' +
-            'feed             喂食宠物（+饥饿 +XP）\n' +
-            'rename <name>    给宠物改名\n' +
-            'toggle           显示/隐藏宠物面板\n' +
-            'release          放生当前宠物（不可撤销）\n' +
-            'import <path>    导入精灵图宠物\n' +
-            'clean [species]  清理图像缓存（无参时清理当前宠物）\n' +
-            'help             显示本帮助',
+            '/pets \u5BA0\u7269\u7CFB\u7EDF\u547D\u4EE4\n' +
+            '\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\u2508\n' +
+            'hatch [seed]     \u4ECE\u5DF2\u5BFC\u5165\u7269\u79CD\u4E2D\u968F\u673A\u5B75\u5316\u65B0\u5BA0\u7269\n' +
+            'status           \u663E\u793A\u5BA0\u7269\u9762\u677F\uFF08\u5168\u5C4F widget\uFF09\n' +
+            'info             \u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848\n' +
+            'list             \u5217\u51FA\u5DF2\u5BFC\u5165\u7269\u79CD\u5E76\u4EA4\u4E92\u9009\u62E9\u5BA0\u7269\n' +
+            'pet              \u629A\u6478\u5BA0\u7269\uFF08+\u5FEB\u4E50 +XP\uFF09\n' +
+            'feed             \u5582\u98DF\u5BA0\u7269\uFF08+\u9965\u997F +XP\uFF09\n' +
+            'rename <name>    \u7ED9\u5BA0\u7269\u6539\u540D\n' +
+            'toggle           \u663E\u793A/\u9690\u85CF\u5BA0\u7269\u9762\u677F\n' +
+            'release          \u653E\u751F\u5F53\u524D\u5BA0\u7269\uFF08\u4E0D\u53EF\u64A4\u9500\uFF09\n' +
+            'import <path>    \u5BFC\u5165\u7CBE\u7075\u56FE\u5BA0\u7269\uFF08\u4EC5\u6DFB\u52A0\u7269\u79CD\uFF0C\u4E0D\u5B75\u5316\uFF09\n' +
+            'clean [species]  \u6E05\u7406\u56FE\u50CF\u7F13\u5B58\uFF08\u65E0\u53C2\u65F6\u6E05\u7406\u5F53\u524D\u5BA0\u7269\uFF09\n' +
+            'help             \u663E\u793A\u672C\u5E2E\u52A9',
             'info',
           );
           break;
@@ -422,18 +601,17 @@ export function registerCommands(
 
         // ---- unknown / fallback ----
         default: {
-          // Show pet summary if there's a pet, otherwise show guidance
           if (engine.hasPet && engine.state) {
             const s = engine.state;
             const sp = getSpecies(s.bones.species);
             ctx.ui.notify(
-              `未知子命令 "${sub}"。输入 /pets help 查看全部命令。\n` +
-              `当前宠物: "${s.name}" ${sp.emoji} Lv.${s.level} ${engine.stageName} ${engine.emotionEmoji}`,
+              `\u672A\u77E5\u5B50\u547D\u4EE4 "${sub}"\u3002\u8F93\u5165 /pets help \u67E5\u770B\u5168\u90E8\u547D\u4EE4\u3002\n` +
+              `\u5F53\u524D\u5BA0\u7269: "${s.name}" ${sp.emoji} Lv.${s.level} ${engine.stageName} ${engine.emotionEmoji}`,
               'warning',
             );
           } else {
             ctx.ui.notify(
-              `未知子命令 "${sub}"。使用 /pets hatch [seed] 孵化宠物，或 /pets help 查看全部命令。`,
+              `\u672A\u77E5\u5B50\u547D\u4EE4 "${sub}"\u3002\u4F7F\u7528 /pets hatch \u5B75\u5316\u5BA0\u7269\uFF0C\u6216 /pets help \u67E5\u770B\u5168\u90E8\u547D\u4EE4\u3002`,
               'warning',
             );
           }

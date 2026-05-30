@@ -6,12 +6,13 @@ import { generateFallbackName } from './name_generator.ts';
 import { getLevel, xpFromTurnComplete, xpFromToolSuccess, xpFromTestsAllPass, xpFromErrorFixed } from './xp.ts';
 import { mulberry32 } from './prng.ts';
 import { getStage, stageDisplayName, isStageTransition } from './evolution.ts';
-import { tickNeeds, feed, petPet, applyIdleRecovery, emotionFromNeeds } from './needs.ts';
+import { tickNeeds, feed, petPet, applyIdleRecovery, resolveEmotion } from './needs.ts';
 import { Persistence } from './persistence.ts';
 
 /**
- * PetEngine - the main controller for a single pet.
- * Manages state transitions, XP, needs, and persistence.
+ * PetEngine - the main controller for pets.
+ * Manages state transitions, XP, needs, and multi-pet persistence.
+ * One active pet at a time, but multiple independent pet states on disk.
  */
 export class PetEngine {
   state: PetState | null = null;
@@ -25,9 +26,25 @@ export class PetEngine {
   currentBubble: string = '';
   animationFrame: number = 0;
 
+  /** Timestamp of most recent user activity (tool exec / turn end). */
+  private lastActivityTimestamp: number = Date.now();
+
+  /** Timestamp until which event-set emotions (frustrated/excited) are held. */
+  private emotionHoldUntil: number = 0;
+
   constructor(baseDir?: string) {
     this.persistence = new Persistence(baseDir);
     this.xpRng = mulberry32(Date.now());
+  }
+
+  /** Record recent activity for working-state detection. */
+  private recordActivity(): void {
+    this.lastActivityTimestamp = Date.now();
+  }
+
+  /** Check if there was recent activity within the working window. */
+  private isRecentlyWorking(): boolean {
+    return Date.now() - this.lastActivityTimestamp < CONFIG.WORKING_WINDOW_MS;
   }
 
   get hasPet(): boolean {
@@ -52,9 +69,12 @@ export class PetEngine {
 
   // ===== Lifecycle =====
 
-  /** Load an existing pet from persistence. */
+  /** Load the active pet from persistence (by active pointer). */
   async load(): Promise<boolean> {
-    const loaded = await this.persistence.load();
+    const activeId = await this.persistence.getActivePetId();
+    if (!activeId) return false;
+
+    const loaded = await this.persistence.loadPet(activeId);
     if (loaded) {
       this.state = loaded;
       // Apply idle recovery for time spent away
@@ -65,20 +85,21 @@ export class PetEngine {
         tickNeeds(this.state.needs, elapsed);
       }
       this.state.lastTickTimestamp = Date.now();
+      this.recordActivity();
       return true;
     }
     return false;
   }
 
-  /** Save current state to persistence. */
+  /** Save current state to its independent pet file. */
   async save(): Promise<void> {
     if (!this.state) return;
     this.state.lastTickTimestamp = Date.now();
-    await this.persistence.save(this.state);
+    await this.persistence.savePet(this.state);
   }
 
-  /** Hatch a new pet from a seed. */
-  async hatch(seed: number, speciesOverride?: string): Promise<{ name: string; stage: GrowthStage }> {
+  /** Hatch a new pet from a seed, save as independent file, set as active. */
+  async hatch(seed: number, speciesOverride: string): Promise<{ name: string; stage: GrowthStage }> {
     const bones = hatch(seed, speciesOverride);
     const naming = generateFallbackName(bones, seed);
 
@@ -103,14 +124,50 @@ export class PetEngine {
       equippedSkills: [],
     };
     this.initXpRng();
-    await this.save();
+    this.recordActivity();
+    await this.persistence.savePet(this.state);
+    await this.persistence.setActivePetId(this.state.id);
     return { name: this.state.name, stage: this.state.stage };
   }
 
-  /** Release the pet (remove persistence). */
+  /** Release the current pet (delete its file and clear active pointer). */
   async release(): Promise<void> {
+    if (this.state) {
+      await this.persistence.deletePet(this.state.id);
+    }
     this.state = null;
-    await this.persistence.delete();
+    await this.persistence.setActivePetId(null);
+  }
+
+  /** Check if a pet already exists for the given species. */
+  async getExistingPetForSpecies(speciesId: string): Promise<PetState | null> {
+    const allIds = await this.persistence.listPetIds();
+    for (const id of allIds) {
+      const pet = await this.persistence.loadPet(id);
+      if (pet && pet.bones.species === speciesId) {
+        return pet;
+      }
+    }
+    return null;
+  }
+
+  /** Switch to an existing pet by loading its state and updating the active pointer. */
+  async switchToPet(petState: PetState): Promise<void> {
+    // Save current pet if any
+    if (this.state) {
+      await this.persistence.savePet(this.state);
+    }
+    this.state = petState;
+    this.initXpRng();
+    // Apply idle recovery for time spent away (same as load())
+    const elapsed = Date.now() - this.state.lastTickTimestamp;
+    if (elapsed > 60_000) {
+      applyIdleRecovery(this.state.needs, elapsed);
+      tickNeeds(this.state.needs, elapsed);
+    }
+    this.state.lastTickTimestamp = Date.now();
+    this.recordActivity();
+    await this.persistence.setActivePetId(this.state.id);
   }
 
   // ===== Needs & Emotion =====
@@ -125,7 +182,10 @@ export class PetEngine {
     tickNeeds(this.state.needs, elapsed);
     this.state.lastTickTimestamp = now;
 
-    const newEmotion = emotionFromNeeds(this.state.needs);
+    // Skip emotion re-evaluation if a hold is active (event-set emotion like frustrated/excited)
+    if (Date.now() < this.emotionHoldUntil) return null;
+
+    const newEmotion = resolveEmotion(this.state.needs, this.isRecentlyWorking());
     const changed = newEmotion !== this.state.emotion;
     this.state.emotion = newEmotion;
     return changed ? newEmotion : null;
@@ -135,7 +195,7 @@ export class PetEngine {
   doFeed(): boolean {
     if (!this.state) return false;
     feed(this.state.needs);
-    this.state.emotion = emotionFromNeeds(this.state.needs);
+    this.state.emotion = resolveEmotion(this.state.needs, this.isRecentlyWorking());
     return true;
   }
 
@@ -143,7 +203,7 @@ export class PetEngine {
   doPet(): boolean {
     if (!this.state) return false;
     petPet(this.state.needs);
-    this.state.emotion = emotionFromNeeds(this.state.needs);
+    this.state.emotion = resolveEmotion(this.state.needs, this.isRecentlyWorking());
     return true;
   }
 
@@ -168,6 +228,7 @@ export class PetEngine {
   /** Called after each turn completes. */
   onTurnComplete(): { xpGained: number; leveledUp: boolean; newStage: GrowthStage | null } {
     const amount = xpFromTurnComplete(this.xpRng);
+    this.recordActivity();
     const result = this.addXp(amount);
     return { xpGained: amount, ...result };
   }
@@ -175,6 +236,8 @@ export class PetEngine {
   /** Called after a tool execution completes. */
   onToolExecuted(success: boolean, isError: boolean): void {
     if (!this.state) return;
+
+    this.recordActivity();
 
     if (success && !isError) {
       this.addXp(xpFromToolSuccess(this.xpRng));
@@ -189,6 +252,7 @@ export class PetEngine {
       // Override emotion for frustration
       if (this.currentErrorCount >= 3) {
         this.state.emotion = 'frustrated';
+        this.emotionHoldUntil = Date.now() + CONFIG.EMOTION_HOLD_MS;
       }
     } else {
       this.currentErrorCount = 0;
@@ -200,7 +264,9 @@ export class PetEngine {
     if (!this.state) return;
     this.state.totalTestsPassed += count;
     this.addXp(xpFromTestsAllPass());
+    this.recordActivity();
     this.state.emotion = 'excited';
+    this.emotionHoldUntil = Date.now() + CONFIG.EMOTION_HOLD_MS;
   }
 
   /** Called when a session starts. */
@@ -214,13 +280,14 @@ export class PetEngine {
   get emotionEmoji(): string {
     if (!this.state) return '';
     const map: Record<EmotionState, string> = {
-      happy: '😊',
-      curious: '🤔',
-      excited: '🎉',
-      tired: '😴',
-      hungry: '🍽️',
-      frustrated: '😤',
-      sick: '🤒',
+      happy: '\u{1F60A}',
+      curious: '\u{1F914}',
+      excited: '\u{1F389}',
+      tired: '\u{1F634}',
+      hungry: '\u{1F37D}\uFE0F',
+      frustrated: '\u{1F624}',
+      sick: '\u{1F912}',
+      working: '\u{1F4BB}',
     };
     return map[this.state.emotion];
   }
@@ -228,7 +295,7 @@ export class PetEngine {
   get statusLine(): string {
     if (!this.state) return '';
     const s = this.state;
-    return `"${s.name}" Lv.${s.level} ${this.emotionEmoji} ⭐${s.xp}XP H:${s.needs.hunger} E:${s.needs.energy}`;
+    return `"${s.name}" Lv.${s.level} ${this.emotionEmoji} \u2B50${s.xp}XP H:${s.needs.hunger} E:${s.needs.energy}`;
   }
 
   get stageName(): string {
@@ -239,11 +306,11 @@ export class PetEngine {
   get rarityLabel(): string {
     if (!this.state) return '';
     const map: Record<string, string> = {
-      common: '普通',
-      uncommon: '稀有',
-      rare: '精良',
-      epic: '史诗',
-      legendary: '传说',
+      common: '\u666E\u901A',
+      uncommon: '\u7A00\u6709',
+      rare: '\u7CBE\u826F',
+      epic: '\u53F2\u8BD7',
+      legendary: '\u4F20\u8BF4',
     };
     return map[this.state.bones.rarity] ?? this.state.bones.rarity;
   }

@@ -1,7 +1,6 @@
-import type { PetBones, RarityTier, SpeciesDef, SpeciesId, Stats } from './types.ts';
+import type { PetBones, RarityTier, Stats } from './types.ts';
 import { STAT_KEYS } from './types.ts';
 import { createPrng } from './prng.ts';
-import { SPECIES } from './species.ts';
 import { CONFIG } from './config.ts';
 
 /**
@@ -18,51 +17,35 @@ function rollRarity(roll: number): RarityTier {
 }
 
 /**
- * Hatch a pet skeleton deterministically from a seed number.
- * Seed comes from hashing the user's pi config.
+ * Hatch a pet skeleton deterministically from a seed number and species id.
+ * speciesId is required — there are no built-in species.
  */
-export function hatch(seed: number, speciesOverride?: string): PetBones {
+export function hatch(seed: number, speciesId: string): PetBones {
   const prng = createPrng(seed);
 
-  // 1. Pick species
-  let speciesDef: SpeciesDef;
-  if (speciesOverride) {
-    const found = SPECIES.find((s) => s.id === speciesOverride);
-    if (found) {
-      speciesDef = found;
-    } else {
-      // Imported pet — create a default species definition
-      speciesDef = {
-        id: speciesOverride as SpeciesId,
-        name: speciesOverride,
-        nameEn: speciesOverride,
-        emoji: '🐾',
-        description: 'Imported pet',
-        domain: 'imported',
-        baseStats: { debugging: 50, patience: 50, chaos: 50, wisdom: 50, snark: 50 },
-      };
-    }
-  } else {
-    speciesDef = prng.pick(SPECIES);
-  }
-
-  // 2. Rarity roll
+  // Rarity roll
   const rarity = rollRarity(prng.next() * 100);
 
-  // 3. Shiny roll
+  // Shiny roll
   const isShiny = prng.next() < CONFIG.SHINY_CHANCE;
 
-  // 4. Base stats: start from species base, add random offset 0-STAT_RANDOM_RANGE
-  const baseStats: Stats = { ...speciesDef.baseStats };
+  // Base stats: flat defaults + random offset 0-STAT_RANDOM_RANGE
+  const baseStats: Stats = {
+    debugging: 50 + prng.int(CONFIG.STAT_RANDOM_RANGE),
+    patience: 50 + prng.int(CONFIG.STAT_RANDOM_RANGE),
+    chaos: 50 + prng.int(CONFIG.STAT_RANDOM_RANGE),
+    wisdom: 50 + prng.int(CONFIG.STAT_RANDOM_RANGE),
+    snark: 50 + prng.int(CONFIG.STAT_RANDOM_RANGE),
+  };
   for (const key of STAT_KEYS) {
-    baseStats[key] = Math.min(100, baseStats[key] + prng.int(CONFIG.STAT_RANDOM_RANGE));
+    baseStats[key] = Math.min(100, baseStats[key]);
   }
 
-  // 5. Gender
+  // Gender
   const gender = prng.next() < 0.5 ? 'male' : 'female';
 
   return {
-    species: speciesDef.id,
+    species: speciesId,
     rarity,
     isShiny,
     gender,
@@ -73,6 +56,6 @@ export function hatch(seed: number, speciesOverride?: string): PetBones {
 /**
  * Reconstruct bones from a saved seed (e.g. when loading state).
  */
-export function reconstruct(seed: number): PetBones {
-  return hatch(seed);
+export function reconstruct(seed: number, speciesId: string): PetBones {
+  return hatch(seed, speciesId);
 }

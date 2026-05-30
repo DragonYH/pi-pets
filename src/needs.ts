@@ -77,3 +77,30 @@ export function emotionFromNeeds(needs: Needs): EmotionState {
   }
   return 'happy';
 }
+
+/**
+ * Resolve emotion combining needs and working state.
+ * Sick always takes priority regardless of working state.
+ * When working: extreme lows (<20) override working;
+ * otherwise show working.
+ * When not working: falls through to original emotionFromNeeds.
+ */
+export function resolveEmotion(needs: Needs, isRecentlyWorking: boolean): EmotionState {
+  const { hunger, energy, happiness } = needs;
+
+  // Critical states take priority regardless of working
+  if (hunger < 10 || energy < 10 || happiness < 10) {
+    return 'sick';
+  }
+
+  if (isRecentlyWorking) {
+    // During work: extreme lows override working
+    if (energy < 20) return 'tired';
+    if (hunger < 20) return 'hungry';
+    if (happiness < 20) return 'frustrated';
+    return 'working';
+  }
+
+  // Not recently working: original emotion logic
+  return emotionFromNeeds(needs);
+}

@@ -56,15 +56,20 @@ export const CONFIG = {
 
   STAT_RANDOM_RANGE: 20,
 
+  // ---- Working Detection ----
+  WORKING_WINDOW_MS: 300_000,
+  EMOTION_HOLD_MS: 10_000,
+
   // ---- Persistence ----
-  PERSISTENCE_PATH: '.pi/pets/state.json',
+  PETS_DIR: '.pi/agent/pets/pets',
+  ACTIVE_PET_PATH: '.pi/agent/pets/active.json',
 
   // ---- Pet state schema version ----
   STATE_VERSION: 1 as const,
 
   // ---- Rendering ----
 
-  PET_CACHE_DIR: '.pi/pets/pet-cache',
+  PET_CACHE_DIR: '.pi/agent/pets/pet-cache',
   SPRITESHEET_COLS: 8,
   SPRITESHEET_ROWS: 9,
   FRAME_WIDTH: 192,
@@ -74,3 +79,5 @@ export const CONFIG = {
   ALPHA_OPAQUE_THRESHOLD: 10,
   MIN_OPAQUE_RATIO: 0.005,
 } as const;
+
+

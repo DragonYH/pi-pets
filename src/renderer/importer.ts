@@ -35,7 +35,7 @@ interface PetJsonMeta {
  * 1. Reads and validates pet.json
  * 2. Converts the spritesheet to pixel grids
  * 3. Generates ANSI and text fallback caches
- * 4. Saves the cache to ~/.pi/pets/pet-cache/{speciesId}.json
+ * 4. Saves the cache to ~/.pi/agent/pets/pet-cache/{speciesId}.json
  *
  * @param petDir - Path to the directory containing pet.json and spritesheet.webp
  * @returns Import result with speciesId and displayName

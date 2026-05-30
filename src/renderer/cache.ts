@@ -83,7 +83,6 @@ export async function invalidateCache(speciesId: string): Promise<void> {
     // File may not exist
   }
 }
-
 /**
  * List all cached pet species in the cache directory.
  * Returns an empty array if the directory doesn't exist or contains no valid entries.
