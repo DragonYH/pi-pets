@@ -30,7 +30,7 @@ export function registerCommands(
         { value: 'hatch',   label: 'hatch',   description: '\u968F\u673A\u5B75\u5316\u4E00\u53EA\u65B0\u5BA0\u7269' },
         { value: 'status',  label: 'status',  description: '\u663E\u793A\u5BA0\u7269\u9762\u677F' },
         { value: 'info',    label: 'info',    description: '\u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848' },
-        { value: 'list',    label: 'list',    description: '\u5217\u51FA\u5DF2\u5B75\u5316\u7684\u5BA0\u7269\u5E76\u5207\u6362' },
+{ value: 'list',    label: 'list',    description: '列出已孵化宠物并交互切换' },
         { value: 'pet',     label: 'pet',     description: '\u629A\u6478\u5BA0\u7269\uFF0C\u5B83\u4F1A\u5F88\u5F00\u5FC3' },
         { value: 'feed',    label: 'feed',    description: '\u5582\u98DF\u5BA0\u7269' },
         { value: 'rename',  label: 'rename',  description: '\u7ED9\u5BA0\u7269\u6539\u540D' },
@@ -98,14 +98,14 @@ export function registerCommands(
             ctx.ui.setStatus('pet', buildFooterStatus(engine));
             ctx.ui.notify(
               `\u{1F4E6} \u5DF2\u5BFC\u5165 "${result.displayName}" (${result.speciesId})\n` +
-              `\u4F7F\u7528 /pets list \u9009\u62E9\u5B75\u5316\u8BE5\u7269\u79CD`,
-              'info',
+              `使用 /pets hatch 随机孵化该物种`, 'info',
             );
           } catch (err) {
             ctx.ui.notify('\u5BFC\u5165\u5931\u8D25: ' + (err as Error).message, 'error');
           }
           return;
         }
+
 
         // ---- list (native select, only hatched pets) ----
         case 'list': {
@@ -468,7 +468,7 @@ export function registerCommands(
             'hatch [seed]     \u4ECE\u5DF2\u5BFC\u5165\u7269\u79CD\u4E2D\u968F\u673A\u5B75\u5316\u65B0\u5BA0\u7269\n' +
             'status           \u663E\u793A\u5BA0\u7269\u9762\u677F\uFF08\u5168\u5C4F widget\uFF09\n' +
             'info             \u67E5\u770B\u5BA0\u7269\u8BE6\u7EC6\u6863\u6848\n' +
-            'list             \u5217\u51FA\u5DF2\u5BFC\u5165\u7269\u79CD\u5E76\u4EA4\u4E92\u9009\u62E9\u5BA0\u7269\n' +
+            'list             列出已孵化宠物并交互切换\n' +
             'pet              \u629A\u6478\u5BA0\u7269\uFF08+\u5FEB\u4E50 +XP\uFF09\n' +
             'feed             \u5582\u98DF\u5BA0\u7269\uFF08+\u9965\u997F +XP\uFF09\n' +
             'rename <name>    \u7ED9\u5BA0\u7269\u6539\u540D\n' +
